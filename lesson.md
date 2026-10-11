@@ -77,7 +77,7 @@ The comma and exclamation point are not kept. All letters become lowercase, so `
 
 ### Word-count vector
 
-A vector is an ordered set of numbers. If our vocabulary is `book`, `hours`, and `woodshop`, the text “book the woodshop” can be represented as:
+A vector is an ordered set of numbers. If our vocabulary is `book`, `hours`, and `woodshop`, the text “book woodshop” can be represented as:
 
 ```text
 book: 1, hours: 0, woodshop: 1  ->  [1, 0, 1]
