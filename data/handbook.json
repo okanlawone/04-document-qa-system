@@ -1,0 +1,32 @@
+[
+  {
+    "id": "WS-01",
+    "title": "Workshop access and safety",
+    "source": "Northstar Workshop Handbook (invented practice document)",
+    "text": "Every member must complete the safety orientation before using any powered tool. The orientation is offered on Wednesday evenings. Closed-toe shoes and eye protection are required in the woodshop."
+  },
+  {
+    "id": "WS-02",
+    "title": "Booking a woodshop session",
+    "source": "Northstar Workshop Booking Guide (invented practice document)",
+    "text": "Members reserve a woodshop session through the workshop booking calendar. A session lasts 90 minutes, and reservations must be made at least 24 hours before the session begins."
+  },
+  {
+    "id": "WS-03",
+    "title": "Changing a reservation",
+    "source": "Northstar Workshop Booking Guide (invented practice document)",
+    "text": "To release a reserved time for another member, cancel the booking at least two hours before it starts. Late cancellations should be reported to the front desk."
+  },
+  {
+    "id": "WS-04",
+    "title": "Using the ceramics room",
+    "source": "Northstar Workshop Room Guide (invented practice document)",
+    "text": "The ceramics room is open on weekdays from 10 in the morning until 8 in the evening. Clay and glaze are sold at the front desk. Members should label unfinished pieces with their name and the date."
+  },
+  {
+    "id": "WS-05",
+    "title": "Getting help with a tool",
+    "source": "Northstar Workshop Handbook (invented practice document)",
+    "text": "Ask the shop steward before using a tool you have not used before. Shop stewards can explain safe setup and help identify the correct protective equipment."
+  }
+]
