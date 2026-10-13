@@ -13,15 +13,15 @@ Build and understand a document question-answering system that retrieves relevan
 - [x] Normalize text into simple word tokens.
 - [x] Count words and rank passages with cosine similarity.
 - [x] Display the passage and its source so the match can be inspected.
-- [ ] Run several questions and record which ranking surprised you.
+- [x] Run several questions using a labeled evaluation set and record the observed ranking behavior.
 
 ### Session 2 — Retrieval quality and answer behavior
 
-- [ ] Create a small set of questions with expected source IDs.
-- [ ] Measure whether the right source appears near the top.
-- [ ] Compare the first word-count approach with an improved representation.
-- [ ] Decide how to respond when no retrieved evidence supports an answer.
-- [ ] Add a response layer while preserving visible source evidence.
+- [x] Create a small set of questions with expected source IDs.
+- [x] Measure whether the right source appears near the top.
+- [x] Compare the first word-count approach with TF-IDF weighting.
+- [x] Decide how to respond when no retrieved evidence supports an answer.
+- [ ] Add an extractive response layer with visible source evidence and an abstention path.
 
 ### Later extensions (only after the foundations are understood)
 
@@ -32,7 +32,13 @@ Build and understand a document question-answering system that retrieves relevan
 
 ## Session 1 checkpoint
 
-The current baseline is runnable and returns ranked evidence passages. It is not yet a complete RAG pipeline: there is no generative model, no embedding model, no training step, and no evaluation set. The handbook is invented lookup content, not model-training data.
+The current baseline is runnable and returns ranked evidence passages. Session 2 adds ten hand-written evaluation questions and a retrieval comparison. On this small set, raw word counts put the expected source first on 3/7 answerable questions; TF-IDF did so on 1/7. Both methods found the expected source within the top three on 7/7 answerable questions, and both returned a passage for all 3/3 unanswerable questions. These are diagnostic results for this invented set, not general performance claims.
+
+The project is not yet a complete RAG pipeline: there is no generative model, embedding model, training step, or calibrated abstention rule. The handbook is invented lookup content; the question set is invented evaluation data. Neither is model-training data.
+
+## Session 2 checkpoint
+
+Keep raw word counts as the current baseline because they ranked the expected source first more often than TF-IDF on this question set. The next answer layer will be extractive: quote a supporting source sentence and cite its record, or say the handbook does not provide enough support. Do not add free-form generation until evidence sufficiency and abstention are addressed.
 
 ## Reflection log
 

@@ -1,0 +1,72 @@
+[
+  {
+    "id": "Q1",
+    "question": "How long is one woodshop booking?",
+    "expected_source_ids": ["WS-02"],
+    "answerable": true,
+    "question_type": "direct wording"
+  },
+  {
+    "id": "Q2",
+    "question": "What advance notice is needed for a woodshop reservation?",
+    "expected_source_ids": ["WS-02"],
+    "answerable": true,
+    "question_type": "paraphrase"
+  },
+  {
+    "id": "Q3",
+    "question": "How much time should I set aside after getting a slot on the calendar?",
+    "expected_source_ids": ["WS-02"],
+    "answerable": true,
+    "question_type": "paraphrase"
+  },
+  {
+    "id": "Q4",
+    "question": "How soon before the session starts can I cancel?",
+    "expected_source_ids": ["WS-03"],
+    "answerable": true,
+    "question_type": "direct wording"
+  },
+  {
+    "id": "Q5",
+    "question": "What clothes and equipment keep me safe while woodworking?",
+    "expected_source_ids": ["WS-01"],
+    "answerable": true,
+    "question_type": "paraphrase"
+  },
+  {
+    "id": "Q6",
+    "question": "Can I use the ceramic studio at night?",
+    "expected_source_ids": ["WS-04"],
+    "answerable": true,
+    "question_type": "paraphrase"
+  },
+  {
+    "id": "Q7",
+    "question": "Who teaches me to set up a tool I have never used?",
+    "expected_source_ids": ["WS-05"],
+    "answerable": true,
+    "question_type": "direct wording"
+  },
+  {
+    "id": "Q8",
+    "question": "Can children attend the workshop on weekends?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "unanswerable"
+  },
+  {
+    "id": "Q9",
+    "question": "Is parking included with the 90-minute session?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "unanswerable with an overlapping detail"
+  },
+  {
+    "id": "Q10",
+    "question": "What is the Wi-Fi password at the workshop?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "unanswerable"
+  }
+]

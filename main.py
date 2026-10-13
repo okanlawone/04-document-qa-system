@@ -69,6 +69,44 @@ def search_documents(question, documents, limit=3):
     return ranked_documents[:limit]
 
 
+def search_documents_tfidf(question, documents, limit=3):
+    """Rank documents with word counts that give rarer words more weight."""
+    question_counts = count_words(question)
+    if not question_counts:
+        return []
+
+    # Document frequency counts how many documents contain each word.
+    # A word is counted once per document, even if it repeats in that document.
+    document_frequency = Counter()
+    for document in documents:
+        document_frequency.update(set(tokenize(document["text"])))
+
+    document_count = len(documents)
+
+    def weighted_counts(word_counts):
+        weighted = {}
+        for word, count in word_counts.items():
+            # Smoothing keeps the weight defined for a query word unseen in the handbook.
+            inverse_document_frequency = math.log(
+                (document_count + 1) / (document_frequency[word] + 1)
+            ) + 1
+            weighted[word] = count * inverse_document_frequency
+        return weighted
+
+    question_vector = weighted_counts(question_counts)
+    ranked_documents = []
+
+    for document in documents:
+        document_counts = count_words(document["text"])
+        document_vector = weighted_counts(document_counts)
+        score = cosine_similarity(question_vector, document_vector)
+        if score > 0:
+            ranked_documents.append((score, document))
+
+    ranked_documents.sort(key=lambda result: (-result[0], result[1]["id"]))
+    return ranked_documents[:limit]
+
+
 def main():
     documents = load_documents(DATA_PATH)
     question = input("Ask a question about the Northstar Workshop: ").strip()
