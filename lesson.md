@@ -435,3 +435,182 @@ Try answering in your own words, without copying the code:
 7. Why is a similarity score not the same thing as confidence?
 8. What exact source evidence should an extractive response show?
 9. Why are these ten questions neither training data nor proof of general performance?
+
+# Session 3: When is a passage enough to answer?
+
+**Today’s goal:** keep the search results visible, then add a cautious layer that either quotes source text with a citation or abstains. We will inspect why a close match can still fail to answer a question.
+
+**New files and changes:** `main.py` now checks question-topic clues against a source title and one or two neighboring sentences. `data/evaluation_questions.json` has 13 hand-written examples. `evaluate.py` reports whether the system quoted the expected evidence or correctly abstained.
+
+**Still not built:** this is not a generative AI system. It has no LLM, embeddings, training step, or probability-calibrated confidence score. Every Northstar Workshop record remains invented practice content.
+
+## 1. The difference between finding and answering
+
+Imagine searching a paper handbook for “Is parking included with the 90-minute session?” A word-matching search can find the booking passage because it contains “session” and “90 minutes.” That only establishes that the passage is related to part of the question. It does not establish that the passage says anything about parking.
+
+Keep these two decisions separate:
+
+1. **Retrieval:** Which existing passages share words with the question?
+2. **Evidence sufficiency:** Does a short piece of one passage cover the topics the question asks about?
+
+The first decision makes a candidate list. It is not permission to answer. The second decision in this project is a small, visible rule system. It can still be wrong, so we test both answerable and unanswerable questions.
+
+## 2. A new plain-language idea: topic clues
+
+A topic clue is a word or short phrase that gives a clue about what a question is asking. For example, “parking,” “included,” and “session” are clues in the parking question. The program groups a few related spellings or phrases in `CONCEPT_GROUPS` near the top of `main.py`:
+
+```python
+"parking": ("parking",),
+"inclusion or fee": ("include", "included", "pass", "fee", "cost"),
+```
+
+The braces `{...}` around `CONCEPT_GROUPS` make a dictionary. A dictionary stores pairs: a label such as `parking`, and a tuple of text clues that can activate that label. A tuple is a short, ordered collection of values. These groups are handwritten by us; they were not learned from examples.
+
+A group is meant to cover a few phrases we decide are related for this toy handbook. It does **not** prove those phrases always mean the same thing. For example, treating “night” and “evening” as related may be useful here, but the code does not understand opening hours as a person does.
+
+## 3. What happens to one question?
+
+Let’s trace “Is parking included with the 90-minute session?” through the program.
+
+### Step A: Find its topic clues
+
+`concepts_in(question)` checks the question against every hand-written group. The tokenizer lowercases the text and splits it into letter and number runs. Punctuation is removed. Depending on the word form, this question activates groups such as `parking`, `inclusion or fee`, and `booking or session`.
+
+`contains_phrase(text, phrase)` asks a narrow question: do these phrase tokens appear next to each other in the text tokens? It does not look up a dictionary, search the internet, or infer the meaning of a sentence.
+
+### Step B: Retrieve candidate handbook records
+
+`answer_question` calls the existing raw word-count `search_documents` function. This gives the same kind of ranking we studied earlier. In this example, the booking passage is a strong candidate because “session” overlaps. The ranking score is still a word-overlap measurement, not a measure of truth or answer confidence.
+
+### Step C: Examine short evidence windows
+
+`sentences_in` splits each short handbook text at periods, question marks, and exclamation marks. The answer layer examines each sentence on its own and also each pair of neighboring sentences. A two-sentence window can preserve context when one sentence names the subject and the next gives the detail.
+
+For each possible window, the program combines the document title and the original sentence or sentence pair. The title supplies context, such as “Booking a woodshop session.” It never rewrites the quotation. The candidate passes this simple gate only when every topic group detected in the question has at least one clue in that title-plus-window text.
+
+The parking passage has clues about booking and duration, but it has no clue in the `parking` or `inclusion or fee` groups. It therefore cannot pass the gate. The program abstains and may show the closest passage under a label that says it is **not an answer**.
+
+### Step D: Quote or abstain
+
+If a window passes the gate, the program copies that exact original text and prints its record ID, title, and source. “Extractive” means the answer is extracted from existing text. This code does not write a new sentence that could add unsupported facts.
+
+If no window passes, the program says the handbook does not give enough evidence. An **abstention** is a deliberate decision not to answer when the available evidence is insufficient. It is not a crash or an empty search; it is an answer behavior we chose.
+
+## 4. A useful example and a useful limit
+
+Try the answerable question:
+
+```text
+How much time should I set aside after getting a slot on the calendar?
+```
+
+The question uses a different phrasing from the handbook. The program detects a duration clue and a calendar/slot clue. The first booking sentence contains the calendar context; the next sentence gives the session length. A two-sentence window can connect them, so the returned quote includes both original sentences and cites `WS-02`.
+
+Now try:
+
+```text
+Does the 24-hour booking rule include a parking pass?
+```
+
+The same booking record can rank highly because of “24-hour” and “booking.” But its source never mentions a parking pass. The evidence gate should abstain. This is the key lesson: a true sentence about one part of a question is not necessarily evidence for the whole question.
+
+The rule is deliberately conservative and simplistic. It requires all detected topic groups to appear in one short window, but word presence does not equal logical support. A sentence can contain every required word and still fail to answer the question. The handwritten synonym groups can also miss real paraphrases and can accidentally connect words whose meanings differ in context. The exact quote and citation help a person inspect the result; they do not guarantee correctness.
+
+## 5. Read the answer code without memorizing it
+
+Here is a map of the new functions:
+
+- `contains_phrase(text, phrase)` tokenizes both pieces of text and checks whether the phrase’s token sequence occurs in order.
+- `concepts_in(text)` returns the labels whose clue phrases occur in the text. A `set` is used because a label should only appear once, even if several of its clues match.
+- `sentences_in(text)` returns a list of sentence strings. A list preserves order, which lets us create adjacent sentence pairs.
+- `answer_question(question, documents)` coordinates the work: detect clues, retrieve candidates, make one-sentence and two-sentence windows, check which clues each window covers, then quote a passing window or abstain.
+- `main()` reads one question from the keyboard, calls `answer_question`, and prints either a citation or an abstention.
+
+In the evaluator, `expected_evidence` is a human-written label. It lets `evaluate.py` compare the returned quote to the source passage we expected. `main.py` never loads that label. The evaluator’s labels are not fed into the answer routine, and no model parameters are adjusted. So the question set is evaluation data, not model-training data.
+
+## 6. What the expanded evaluation tells us
+
+The hand-written set now has 13 questions: seven answerable and six unanswerable. Three new unanswerable questions deliberately share words with real handbook topics, including woodshop membership price, a parking pass with the 24-hour booking rule, and parking at night in the ceramics room.
+
+In this run of the evaluator:
+
+- The raw word-count baseline put the expected source first for 3/7 answerable questions and somewhere in its top three for 7/7.
+- TF-IDF put the expected source first for 1/7 and somewhere in its top three for 7/7.
+- Both retrieval methods returned a candidate for all 6/6 unanswerable questions. This confirms that retrieval alone still does not know when to refuse.
+- The extractive rule emitted the hand-labeled source quote for 7/7 answerable questions and abstained on 6/6 unanswerable questions in this small set.
+
+Those last results are **not** evidence that the program will answer every real question correctly. We wrote both the questions and the concept groups by hand, and the extra negative examples were designed to probe known overlap failures. The evaluation is useful for checking the code’s behavior on these cases, but it is tiny and not an independent real-world test. A new paraphrase may be missed; a cleverly worded unsupported question may still pass.
+
+The output distinguishes several ideas:
+
+- **Coverage** asks what share of answerable questions received a quote.
+- **Exact expected evidence rate** asks what share of answerable questions received the labeled source and exact expected sentence or sentence pair.
+- **Correct abstention rate** asks what share of unanswerable questions were refused.
+- **Unsupported answer rate** asks what share of unanswerable questions received a quote anyway.
+
+These measurements describe this fixed, invented set only. Adding or changing questions changes the denominator and can change every percentage. The question labels and expected quotations are not training examples.
+
+## 7. Run it and inspect the decision
+
+From the project folder, use Python 3:
+
+```bash
+python3 main.py
+```
+
+Try an answerable question:
+
+```text
+How long is one woodshop booking?
+```
+
+Then try the overlapping but unsupported question:
+
+```text
+Is parking included with the 90-minute session?
+```
+
+For a repeatable report over every labeled question, run:
+
+```bash
+python3 evaluate.py
+```
+
+When you read a result, inspect three things separately: which record retrieval ranked, which original sentence was quoted, and why the system did or did not abstain. Do not read a similarity score as a probability.
+
+## 8. Experiments and open-ended challenge
+
+Change one idea at a time, then rerun the evaluator and inspect question-level rows:
+
+1. Write a fresh paraphrase without reusing the handbook’s words. Which clue group fails to activate?
+2. Add a question that contains all the right topic words but asks for a relationship the passage never states. Does the gate still answer? This probes the difference between word coverage and actual support.
+3. Temporarily remove `parking` from its concept group. What happens to the parking questions? Explain why the result changes.
+4. Make the system inspect one sentence only, then compare its results with one- or two-sentence windows. Which answers lose necessary context?
+5. Add another invented source about a different topic. Does retrieval find it, and does the citation remain identifiable?
+6. Create several new questions before changing the concept groups. Keep those questions aside, make one code change, then use them as a fresh check. This reduces the temptation to tune only to examples already seen.
+
+For each experiment, write down what you predicted before running the code, what happened, and what you learned. A surprising result is useful evidence about the rule you implemented.
+
+## 9. Check your understanding
+
+Explain these ideas in your own words, as if teaching another beginner:
+
+1. Why can a highly ranked passage still be irrelevant to part of a question?
+2. What is a topic clue in this program, and who decided which words belong together?
+3. Why does the parking question need both booking-related and parking-related evidence?
+4. What does the system print when it cannot find a window with all detected clues?
+5. Why can a one- or two-sentence quotation be easier to verify than a newly generated paragraph?
+6. Why does matching every topic clue still fail to prove that the sentence logically supports the answer?
+7. What is the difference between the invented handbook, the expected-evidence labels, and model-training data?
+8. Why are 7/7 and 6/6 results not a guarantee about new questions?
+9. What additional evidence would you want before trusting this approach on a real handbook?
+
+## Session 3 completion checks
+
+- Run both `python3 main.py` examples and explain the quote/citation and the abstention.
+- Run `python3 evaluate.py` and describe what each reported rate uses as its denominator.
+- Point to the handwritten concept groups and explain one way they could create a false answer or miss a correct one.
+- Explain why the handbook is reference content, why expected evidence is evaluation labeling, and why neither is training data.
+- Propose an unseen question that could challenge the current evidence gate and predict what it will do before running it.
+
+A passed code check is not the same as personally understanding the system. Use the questions above to find gaps in your explanation and investigate them before moving into a more advanced design.

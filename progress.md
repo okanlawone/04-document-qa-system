@@ -21,24 +21,44 @@ Build and understand a document question-answering system that retrieves relevan
 - [x] Measure whether the right source appears near the top.
 - [x] Compare the first word-count approach with TF-IDF weighting.
 - [x] Decide how to respond when no retrieved evidence supports an answer.
-- [ ] Add an extractive response layer with visible source evidence and an abstention path.
+- [x] Add an extractive response layer with visible source evidence and an abstention path.
+
+### Session 3 — Evidence sufficiency and cautious answers
+
+- [x] Add transparent, hand-written topic clue groups.
+- [x] Quote one or two original adjacent source sentences and identify the record.
+- [x] Abstain when no single title-plus-evidence window covers every detected question clue.
+- [x] Expand the invented evaluation set from 10 to 13 questions with three overlap traps.
+- [x] Measure exact expected evidence, answerable coverage, correct abstention, and unsupported answers.
+- [x] Explain how this lexical coverage rule can still miss or falsely approve evidence.
+
+### Next learning checkpoint — Challenge the heuristic
+
+- [ ] Write unseen paraphrases before changing clue groups.
+- [ ] Add an unsupported question that uses all the right topic words but asks an unstated relationship.
+- [ ] Compare one-sentence and two-sentence evidence windows.
+- [ ] Explain a false positive and a false negative without relying on a score as confidence.
 
 ### Later extensions (only after the foundations are understood)
 
 - [ ] Split long documents into smaller passages and retain document/page metadata.
 - [ ] Compare keyword retrieval with semantic embeddings.
-- [ ] Add an optional language model and check every generated claim against retrieved evidence.
-- [ ] Expand the evaluation set with paraphrases and unanswerable questions.
+- [ ] Consider optional language-model generation only after evidence checking is stronger; verify every generated claim against retrieved evidence.
+- [ ] Keep new evaluation questions separate from examples used while adjusting the rules.
 
 ## Session 1 checkpoint
 
-The current baseline is runnable and returns ranked evidence passages. Session 2 adds ten hand-written evaluation questions and a retrieval comparison. On this small set, raw word counts put the expected source first on 3/7 answerable questions; TF-IDF did so on 1/7. Both methods found the expected source within the top three on 7/7 answerable questions, and both returned a passage for all 3/3 unanswerable questions. These are diagnostic results for this invented set, not general performance claims.
-
-The project is not yet a complete RAG pipeline: there is no generative model, embedding model, training step, or calibrated abstention rule. The handbook is invented lookup content; the question set is invented evaluation data. Neither is model-training data.
+The baseline loads five invented handbook passages, tokenizes words, counts them, and ranks passages with cosine similarity. Session 2 added a ten-question hand-written evaluation set and compared raw word counts with TF-IDF. On the original seven answerable questions, raw counts ranked the expected source first on 3/7; TF-IDF did so on 1/7. Both placed the expected source within the top three on 7/7. Both returned a passage on all three original unanswerable questions. These are diagnostic results for this invented set, not general performance claims.
 
 ## Session 2 checkpoint
 
-Keep raw word counts as the current baseline because they ranked the expected source first more often than TF-IDF on this question set. The next answer layer will be extractive: quote a supporting source sentence and cite its record, or say the handbook does not provide enough support. Do not add free-form generation until evidence sufficiency and abstention are addressed.
+Keep raw word counts as the transparent baseline because they ranked the expected source first more often than TF-IDF on the original questions. Retrieval ranking is not answer support. Similarity scores are not calibrated confidence. The next layer should quote source text and cite its record or abstain.
+
+## Session 3 checkpoint
+
+`main.py` now checks manually defined clue groups against one sentence or two adjacent sentences plus the record title. If every detected group has a clue in that window, the program quotes the original text and cites its record. If not, it abstains and may display the closest passage as a non-answer.
+
+The expanded evaluation contains seven answerable and six unanswerable questions. In the current run, the extractive layer returned the labeled source quote for 7/7 answerable questions and abstained on 6/6 unanswerable questions. Raw retrieval still returned some candidate for 6/6 unanswerable questions. The rule is tuned and checked on a tiny, invented, hand-written set; these results are not broad reliability evidence. No model was trained. The handbook is reference data; the questions and expected quotes are evaluation data.
 
 ## Reflection log
 
@@ -46,12 +66,15 @@ Add your own observations here after trying the program:
 
 - A question that retrieved the expected passage:
 - A question that retrieved an unexpected passage:
-- Words that appeared in both the question and the passage:
+- Words or clue groups that appeared in both the question and evidence:
+- One case where lexical clues did not actually prove the requested relationship:
 - One change you want to investigate and why:
 
 ## Completion criteria
 
 - The search logic can be explained in your own words, including what a token, word-count vector, dot product, vector length, and cosine score mean.
-- The program surfaces evidence and source identifiers.
-- A small evaluation set shows retrieval behavior on both answerable and unanswerable questions.
+- The program surfaces quoted evidence and source identifiers or explains why it abstained.
+- A small evaluation set shows retrieval and response behavior on answerable and unanswerable questions.
+- The learner can explain the difference between lexical clue coverage and logical evidence sufficiency.
+- The learner can describe the limits of this hand-written evaluation and propose a fresh challenge question.
 - The system communicates its limits instead of presenting unsupported guesses as facts.

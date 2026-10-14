@@ -45,11 +45,12 @@ The evaluator compares raw word-count cosine similarity with TF-IDF cosine simil
 ## Learning path
 
 - **Session 1 — Find evidence:** inspect the documents, turn words into counts, compare a question with each document using cosine similarity, and study where the ranking fails.
-- **Session 2 — Measure retrieval:** compare raw word counts with TF-IDF using seven answerable and three unanswerable questions. On this small set, raw counts ranked the expected source first for 3/7 answerable questions; TF-IDF did so for 1/7. Both placed the expected source in the top three for 7/7 answerable questions, and both returned a passage for all 3/3 unanswerable questions. These are diagnostic results for this invented set, not general performance claims.
-- **Next response milestone — Quote evidence carefully:** first build a short extractive answer from an original supporting sentence and show its source. If the system cannot find support, it should say so. We are not adding free-form LLM generation yet because current rankings and unanswerable behavior need more work; similarity scores are not calibrated probabilities.
-- **Possible later extensions:** split longer documents into chunks, add semantic embeddings, generate answers from retrieved evidence, show more precise citations, and test unsupported questions.
+- **Session 2 — Measure retrieval:** compare raw word counts with TF-IDF. On the original seven answerable questions, raw counts ranked the expected source first on 3/7 and TF-IDF on 1/7; both placed it in the top three on 7/7. Both retrieval methods returned a passage for all three original unanswerable questions.
+- **Session 3 — Check evidence before answering:** quote one or two original adjacent sentences with a record citation only when every manually detected question-topic group appears in that evidence window and title; otherwise abstain. Across the 13-question invented evaluation set, the code returned the labeled source quote for 7/7 answerable questions and abstained for 6/6 unanswerable questions. Retrieval alone still returned candidates for all 6/6 unanswerable questions. These are results on a tiny, hand-written set, not evidence of general reliability.
+- **Next learning checkpoint — Challenge the heuristic:** write unseen paraphrases before changing clue groups, add a question whose words match but whose requested relationship is absent, and compare one-sentence with two-sentence evidence windows.
+- **Later experiments:** split longer documents into chunks and compare keyword retrieval with semantic embeddings. Consider free-form generation only after the evidence checks are better understood; verify every generated claim against a source.
 
-A session is a learning milestone, not a promise that every extension is complete. We will only move on when the core ideas make sense.
+The clue groups are manually written, not learned language understanding. They can miss paraphrases or approve words that do not logically support an answer. This project is still a retrieval-first extractive system, not a complete RAG system: it does not include a generator. No model has been trained.
 
 ## Completion goal
 

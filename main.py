@@ -9,6 +9,36 @@ from pathlib import Path
 
 DATA_PATH = Path(__file__).parent / "data" / "handbook.json"
 
+# These small, hand-written groups let the first answer layer recognize a few
+# visible paraphrases. They are a teaching device, not a general language model.
+CONCEPT_GROUPS = {
+    "booking or session": (
+        "booking", "book", "reserve", "reserved", "reservation", "reservations",
+        "session",
+    ),
+    "schedule reference": ("calendar", "slot"),
+    "woodworking": ("woodshop", "woodworking", "powered tool"),
+    "duration": ("long", "length", "duration", "last", "lasts", "time", "minute", "minutes", "hour", "hours"),
+    "advance notice": ("early", "advance", "notice", "before", "ahead"),
+    "cancellation": ("cancel", "cancellation", "release"),
+    "safety": ("safe", "safety", "protection", "protective", "eye protection"),
+    "clothing": ("clothes", "clothing", "shoe", "shoes", "footwear"),
+    "equipment": ("equipment", "gear", "protective", "eye protection"),
+    "ceramics room": ("ceramic", "ceramics", "clay", "glaze"),
+    "opening time": ("open", "night", "evening", "weekday", "weekdays", "hours"),
+    "tool": ("tool", "tools"),
+    "person who can help": ("who", "teach", "teacher", "help", "steward"),
+    "setup instruction": ("setup", "set up", "explain", "show", "guide"),
+    "children": ("child", "children", "kid", "kids"),
+    "weekend": ("weekend", "weekends"),
+    "parking": ("parking",),
+    "inclusion or fee": ("include", "included", "pass", "fee", "cost"),
+    "membership": ("member", "membership", "member's"),
+    "price": ("price", "cost", "fee", "charge"),
+    "wireless network": ("wifi", "wi fi", "wireless"),
+    "password": ("password",),
+}
+
 
 def load_documents(path):
     """Read the invented handbook records from a JSON file."""
@@ -86,7 +116,6 @@ def search_documents_tfidf(question, documents, limit=3):
     def weighted_counts(word_counts):
         weighted = {}
         for word, count in word_counts.items():
-            # Smoothing keeps the weight defined for a query word unseen in the handbook.
             inverse_document_frequency = math.log(
                 (document_count + 1) / (document_frequency[word] + 1)
             ) + 1
@@ -107,6 +136,92 @@ def search_documents_tfidf(question, documents, limit=3):
     return ranked_documents[:limit]
 
 
+def contains_phrase(text, phrase):
+    """Return whether the phrase's token sequence occurs inside text's tokens."""
+    text_tokens = tokenize(text)
+    phrase_tokens = tokenize(phrase)
+    width = len(phrase_tokens)
+    return bool(width) and any(
+        text_tokens[start : start + width] == phrase_tokens
+        for start in range(len(text_tokens) - width + 1)
+    )
+
+
+def concepts_in(text):
+    """Find the hand-written concept groups that have a visible clue in text."""
+    return {
+        concept
+        for concept, aliases in CONCEPT_GROUPS.items()
+        if any(contains_phrase(text, alias) for alias in aliases)
+    }
+
+
+def sentences_in(text):
+    """Split this small English handbook into sentences at . ! or ? marks."""
+    return [part.strip() for part in re.split(r"(?<=[.!?])\s+", text.strip()) if part.strip()]
+
+
+def answer_question(question, documents):
+    """Quote one sentence only when it covers every detected question concept."""
+    question_concepts = concepts_in(question)
+    if not question_concepts:
+        return {"answerable": False, "reason": "I could not identify a handbook topic in the question."}
+
+    # Search all records with the existing raw-count baseline. A ranked match is
+    # only a candidate; the concept check below decides whether it may be quoted.
+    ranked_documents = search_documents(question, documents, limit=len(documents))
+    supported = []
+    partial = []
+
+    for retrieval_score, document in ranked_documents:
+        source_sentences = sentences_in(document["text"])
+        evidence_windows = list(source_sentences)
+        evidence_windows.extend(
+            source_sentences[index] + " " + source_sentences[index + 1]
+            for index in range(len(source_sentences) - 1)
+        )
+        for evidence in evidence_windows:
+            # A short two-sentence window may be needed to connect a question's
+            # setup detail to the sentence that gives the answer. The citation
+            # is still copied exactly from the invented source text.
+            source_context = f"{document['title']} {evidence}"
+            covered = concepts_in(source_context)
+            missing = question_concepts - covered
+            candidate = {
+                "document": document,
+                "sentence": evidence,
+                "retrieval_score": retrieval_score,
+                "covered_concepts": sorted(question_concepts & covered),
+                "missing_concepts": sorted(missing),
+            }
+            partial.append(candidate)
+            if not missing:
+                supported.append(candidate)
+
+    if supported:
+        # Prefer the best-ranked document; within ties, prefer a shorter quote.
+        supported.sort(key=lambda item: (-item["retrieval_score"], len(item["sentence"])))
+        result = supported[0]
+        return {"answerable": True, **result}
+
+    if partial:
+        partial.sort(
+            key=lambda item: (
+                -len(item["covered_concepts"]),
+                -item["retrieval_score"],
+                len(item["sentence"]),
+            )
+        )
+        best_partial = partial[0]
+        return {
+            "answerable": False,
+            "reason": "No one quoted sentence and title covered every detected topic clue.",
+            **best_partial,
+        }
+
+    return {"answerable": False, "reason": "No handbook passage shared searchable words with the question."}
+
+
 def main():
     documents = load_documents(DATA_PATH)
     question = input("Ask a question about the Northstar Workshop: ").strip()
@@ -115,17 +230,25 @@ def main():
         print("Please enter a question so the program has words to search for.")
         return
 
-    results = search_documents(question, documents)
-    if not results:
-        print("I could not find a matching passage. Try different words from the handbook.")
+    result = answer_question(question, documents)
+    if result["answerable"]:
+        document = result["document"]
+        print("\nEvidence-based answer (the wording is quoted, not generated):")
+        print(f'“{result["sentence"]}”')
+        print(f"Source: {document['title']} [{document['id']}] — {document['source']}")
+        print(
+            "Topic clues checked: "
+            + ", ".join(result["covered_concepts"])
+        )
         return
 
-    print("\nClosest handbook passages (this baseline does not generate new wording):")
-    for rank, (score, document) in enumerate(results, start=1):
-        print(f"\n{rank}. {document['title']} [{document['id']}]")
-        print(f"   Match score: {score:.3f}")
-        print(f"   Source: {document['source']}")
-        print(f"   Evidence: {document['text']}")
+    print("\nI cannot answer from the handbook: " + result["reason"])
+    if result.get("document"):
+        document = result["document"]
+        print("Closest passage (shown for inspection; it is not an answer):")
+        print(f'“{result["sentence"]}”')
+        print(f"Source: {document['title']} [{document['id']}] — {document['source']}")
+        print("Missing topic clues: " + ", ".join(result["missing_concepts"]))
 
 
 if __name__ == "__main__":
