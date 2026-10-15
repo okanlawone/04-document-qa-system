@@ -161,29 +161,33 @@ def sentences_in(text):
     return [part.strip() for part in re.split(r"(?<=[.!?])\s+", text.strip()) if part.strip()]
 
 
-def answer_question(question, documents):
-    """Quote one sentence only when it covers every detected question concept."""
+def answer_question(question, documents, max_window_sentences=1):
+    """Quote evidence only when it covers every detected clue in the allowed window."""
+    if max_window_sentences not in (1, 2):
+        raise ValueError("max_window_sentences must be 1 or 2 for this comparison.")
+
     question_concepts = concepts_in(question)
     if not question_concepts:
         return {"answerable": False, "reason": "I could not identify a handbook topic in the question."}
 
-    # Search all records with the existing raw-count baseline. A ranked match is
-    # only a candidate; the concept check below decides whether it may be quoted.
+    # Retrieval proposes candidate records. The separate clue check decides
+    # whether the source window may be quoted; ranking alone never answers.
     ranked_documents = search_documents(question, documents, limit=len(documents))
     supported = []
     partial = []
 
     for retrieval_score, document in ranked_documents:
         source_sentences = sentences_in(document["text"])
-        evidence_windows = list(source_sentences)
-        evidence_windows.extend(
-            source_sentences[index] + " " + source_sentences[index + 1]
-            for index in range(len(source_sentences) - 1)
-        )
+        evidence_windows = []
+        for width in range(1, min(max_window_sentences, len(source_sentences)) + 1):
+            evidence_windows.extend(
+                " ".join(source_sentences[start : start + width])
+                for start in range(len(source_sentences) - width + 1)
+            )
+
         for evidence in evidence_windows:
-            # A short two-sentence window may be needed to connect a question's
-            # setup detail to the sentence that gives the answer. The citation
-            # is still copied exactly from the invented source text.
+            # The title supplies a small amount of source context for topic
+            # matching. Evidence itself remains an exact quote from the record.
             source_context = f"{document['title']} {evidence}"
             covered = concepts_in(source_context)
             missing = question_concepts - covered
@@ -199,7 +203,7 @@ def answer_question(question, documents):
                 supported.append(candidate)
 
     if supported:
-        # Prefer the best-ranked document; within ties, prefer a shorter quote.
+        # Prefer the best-ranked document; within ties, prefer the shorter quote.
         supported.sort(key=lambda item: (-item["retrieval_score"], len(item["sentence"])))
         result = supported[0]
         return {"answerable": True, **result}
@@ -215,7 +219,10 @@ def answer_question(question, documents):
         best_partial = partial[0]
         return {
             "answerable": False,
-            "reason": "No one quoted sentence and title covered every detected topic clue.",
+            "reason": (
+                f"No quoted window of at most {max_window_sentences} sentence(s) "
+                "and its title covered every detected topic clue."
+            ),
             **best_partial,
         }
 

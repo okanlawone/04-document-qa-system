@@ -1,0 +1,46 @@
+[
+  {
+    "id": "S4-Q1",
+    "question": "After I reserve a place on the workshop calendar, how long should I set aside for the woodshop?",
+    "expected_source_ids": [
+      "WS-02"
+    ],
+    "expected_evidence": "Members reserve a woodshop session through the workshop booking calendar. A session lasts 90 minutes, and reservations must be made at least 24 hours before the session begins.",
+    "answerable": true,
+    "question_type": "fresh paraphrase; evidence split across adjacent sentences"
+  },
+  {
+    "id": "S4-Q2",
+    "question": "Who can explain how to prepare an unfamiliar tool safely?",
+    "expected_source_ids": [
+      "WS-05"
+    ],
+    "expected_evidence": "Shop stewards can explain safe setup and help identify the correct protective equipment.",
+    "answerable": true,
+    "question_type": "fresh paraphrase"
+  },
+  {
+    "id": "S4-Q3",
+    "question": "Does the shop steward store protective equipment before I use an unfamiliar tool?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "unsupported action relationship; topic clues are split across adjacent sentences"
+  },
+  {
+    "id": "S4-Q4",
+    "question": "Does the two-hour cancellation period include free parking?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "unsupported details beside a matching cancellation period"
+  },
+  {
+    "id": "S4-Q5",
+    "question": "How late can I visit the ceramic studio on a weekday?",
+    "expected_source_ids": [
+      "WS-04"
+    ],
+    "expected_evidence": "The ceramics room is open on weekdays from 10 in the morning until 8 in the evening.",
+    "answerable": true,
+    "question_type": "fresh paraphrase"
+  }
+]

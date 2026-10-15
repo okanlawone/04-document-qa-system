@@ -2,9 +2,9 @@
 
 ## Session 1: How can a program find evidence in documents?
 
-**Status:** first milestone of a multi-session project  
-**Article idea:** “Building a Document Q&A System” in the retrieval and knowledge systems category  
-**Today’s deliverable:** a small Python program that ranks handbook passages and shows their sources  
+**Status:** first milestone of a multi-session project
+**Article idea:** “Building a Document Q&A System” in the retrieval and knowledge systems category
+**Today’s deliverable:** a small Python program that ranks handbook passages and shows their sources
 **Not built yet:** an LLM, generated answers, embeddings, a trained model, or a quality benchmark
 
 The goal of this lesson is not to memorize Python spellings. It is to understand what problem each part solves, what information flows through the program, and why this first version has limits. You should be able to draw the pipeline and explain every box before we add more machinery.
@@ -523,7 +523,7 @@ Here is a map of the new functions:
 - `contains_phrase(text, phrase)` tokenizes both pieces of text and checks whether the phrase’s token sequence occurs in order.
 - `concepts_in(text)` returns the labels whose clue phrases occur in the text. A `set` is used because a label should only appear once, even if several of its clues match.
 - `sentences_in(text)` returns a list of sentence strings. A list preserves order, which lets us create adjacent sentence pairs.
-- `answer_question(question, documents)` coordinates the work: detect clues, retrieve candidates, make one-sentence and two-sentence windows, check which clues each window covers, then quote a passing window or abstain.
+- `answer_question(question, documents)` coordinates the work: detect clues, retrieve candidates, build windows up to the selected one- or two-sentence limit, check which clues each window covers, then quote a passing window or abstain. Its interactive default is one sentence.
 - `main()` reads one question from the keyboard, calls `answer_question`, and prints either a citation or an abstention.
 
 In the evaluator, `expected_evidence` is a human-written label. It lets `evaluate.py` compare the returned quote to the source passage we expected. `main.py` never loads that label. The evaluator’s labels are not fed into the answer routine, and no model parameters are adjusted. So the question set is evaluation data, not model-training data.
@@ -614,3 +614,121 @@ Explain these ideas in your own words, as if teaching another beginner:
 - Propose an unseen question that could challenge the current evidence gate and predict what it will do before running it.
 
 A passed code check is not the same as personally understanding the system. Use the questions above to find gaps in your explanation and investigate them before moving into a more advanced design.
+
+
+## Session 4: What changes when evidence spans two sentences?
+
+**Status:** Session 4 baseline evaluation complete; Project 4 remains active.
+**Question:** Does looking at two nearby sentences help without making unsupported connections easier?
+**Today’s change:** add a window-size setting and five fresh, invented challenge questions. The hand-written concept groups from Session 3 were kept exactly as they were.
+
+### 1. The key idea: evidence has both words and relationships
+
+A **sentence window** is the piece of source text the program checks at one time. A one-sentence window checks one sentence. An up-to-two-sentence window checks each sentence and each pair of neighboring sentences. The second setting allows more context to appear together.
+
+More context can help. A question may combine details that a document places in nearby sentences. But more text can also make unrelated details appear together. Seeing the words “steward,” “protective equipment,” “before,” and “tool” in a two-sentence quote does not prove that the steward stores the equipment before tool use.
+
+This is the distinction we are studying:
+
+- **Lexical coverage** asks, “Did our chosen words or clue groups appear in this text?”
+- **Relationship support** asks, “Does the text actually say that the requested thing happened to, caused, included, or preceded the other thing?”
+
+The current rule checks the first question. It does not reliably check the second. After observing the S4-Q3 false positive, the interactive program defaults to one sentence; this cautious choice avoids that tested trap, but it creates the S4-Q1 abstention. The evaluator retains both window settings so this trade-off stays visible.
+
+### 2. Keep the data roles separate
+
+`data/handbook.json` is an invented reference collection. It is the fictional handbook the program searches. `data/evaluation_questions.json` records the earlier 13-question evaluation, and `data/session4_stress_questions.json` adds five fresh challenge questions written before changing the clue rules.
+
+The questions, expected answers, and handbook are **practice/reference/evaluation data**. They are not model-training data. There is no learned model in this program and no training step. We use the labels only to compare what this small program did with what the question author expected.
+
+Because these questions are now visible and have been used to inspect the baseline, treat them as a fixed regression set. If you change the rule to fit them, write a different new challenge set before calling the changed results an independent check.
+
+### 3. Follow one question through the program
+
+Try S4-Q1:
+
+> After I reserve a place on the workshop calendar, how long should I set aside for the woodshop?
+
+The intended source is `WS-02`, whose first two sentences say that members reserve a session through the booking calendar and that a session lasts 90 minutes.
+
+1. The program tokenizes the question into lowercase word tokens.
+2. The existing clue rules notice clues for booking/session, calendar, woodshop, and duration.
+3. Raw word-count retrieval proposes handbook records. This is only a search ranking; it does not prove that a record answers the question.
+4. In one-sentence mode, no single sentence has both the calendar clue and the session-duration clue. The program abstains. Since the handbook does contain the answer, this is an **answerable miss** (a false negative in this evaluation).
+5. In up-to-two-sentence mode, the first two adjacent `WS-02` sentences together cover all four clue groups. The program returns those exact sentences and the source ID. They state the booking-calendar detail and the 90-minute duration.
+
+The two-sentence result fixes this particular miss, but that does not establish that two sentences are always safer.
+
+### 4. Follow the trap through the program
+
+S4-Q3 asks:
+
+> Does the shop steward store protective equipment before I use an unfamiliar tool?
+
+The invented source says:
+
+- “Ask the shop steward before using a tool you have not used before.”
+- “Shop stewards can explain safe setup and help identify the correct protective equipment.”
+
+The two-sentence window contains the clues for a steward, a tool, “before,” and protective equipment. The rule therefore quotes both sentences. Yet the handbook says nothing about the steward storing equipment. The first sentence says when to ask the steward; the next says that stewards can identify protective equipment. Topic clues co-occur, but the requested action (“store”) is absent.
+
+That emitted quote is **not fabricated**: it is copied from the source. The unsupported step is treating those statements as evidence that the steward stores the equipment. This is a false positive for evidence sufficiency. It shows why “the quote is exact” and “the quote supports the requested answer” are different checks.
+
+S4-Q4 is a useful comparison. It asks whether a two-hour cancellation period includes free parking. The cancellation passage shares the cancellation and time clues, but it contains nothing about a parking pass or a fee. Both window settings abstain, a correct abstention on this invented example.
+
+### 5. The measured result
+
+Run the full evaluation from this repository:
+
+```bash
+python3 evaluate.py
+```
+
+The first part repeats the original Session 2 retrieval and Session 3 answer checks. The final part compares one-sentence windows with windows containing up to two adjacent sentences on the five Session 4 questions. The interactive program now defaults to one sentence because the wider window produced a false positive on the fresh challenge set; the evaluator still measures both choices.
+
+| Measure on the five Session 4 questions | One sentence | Up to two sentences |
+| --- | ---: | ---: |
+| Exact expected quote for answerable questions | 2/3 (66.7%) | 3/3 (100%) |
+| Answerable questions missed by abstaining | 1/3 (33.3%) | 0/3 (0%) |
+| Unsupported questions that got a quote | 0/2 (0%) | 1/2 (50%) |
+| Unsupported questions correctly refused | 2/2 (100%) | 1/2 (50%) |
+
+An **answerable miss** here means the system abstained even though the label says the handbook can answer. A **false positive** means it emitted an answer for a question labeled unsupported. If it emits an answer to an answerable question but cites the wrong source or sentence, the evaluator reports that separately as a source/quote mismatch.
+
+These fractions are counts from five hand-written invented questions. One question changes a rate by 20 percentage points in the unsupported group. The results diagnose these examples; they do not estimate how a real document-Q&A system would perform in general. Do not read any similarity score as confidence.
+
+### 6. Why a larger window is not automatically better
+
+A larger window can reduce missed answers because related information is not always placed in one sentence. It can increase false positives because a broad window may contain all of the right topic words even when the requested connection is missing. The trade-off depends on the documents, the question set, and what the rule considers evidence.
+
+The simple clue matcher also has other limits:
+
+- It sees a hand-written list of aliases, not the full meaning of a question.
+- It can miss a new paraphrase if the words are absent from the clue groups.
+- A clue can appear in a sentence with a different subject or role than the question asks about.
+- Adjacent sentences are not guaranteed to describe one event or one relationship.
+- Exact quote checking catches a mismatch with a label, but it cannot prove the label or rule is valid in the real world.
+
+No language model was added. This remains a retrieval-first, extractive project. It does not yet have a free-form answer generator and should not be described as a complete RAG system.
+
+### 7. Experiments and reflection
+
+Keep the Session 3 clue groups fixed while reasoning about these results. Then answer in your own words:
+
+1. Why did S4-Q1 need two sentences even though each individual sentence was useful?
+2. Which two different claims are stated in the S4-Q3 quote? Which relationship did the question ask for that the quote did not state?
+3. If a system must choose between abstaining often and occasionally giving an unsupported answer, what information would you need before choosing a policy?
+4. Write a new question whose important relationship is missing from the handbook even though its nouns appear in one or two sentences. Do not add it to the current five-question results after seeing the output; preserve it as a future challenge.
+5. Write a paraphrase that uses none of the existing clue aliases. Does the system abstain because no answer exists, or because the wording is unfamiliar? How could you tell?
+6. Propose one way to represent who did what, to whom, and when. Explain how it might help and what language cases it could still misunderstand.
+
+### 8. Completion checks for this session
+
+- [x] Add a `max_window_sentences` setting for one sentence versus up to two adjacent sentences.
+- [x] Write five fresh invented questions before changing any clue groups.
+- [x] Include answerable paraphrases, an unsupported relationship trap, and unsupported details beside a matching fact.
+- [x] Compare exact evidence, answerable abstentions, false positives, and correct refusals.
+- [x] Keep reference and evaluation data distinct from model-training data; no model is trained.
+- [x] Explain why exact quotation and logical support are different.
+
+Project 4 remains open. The next checkpoint should investigate relationship-aware evidence checks with a new question set written before any rule changes. Keep the Session 4 challenge questions fixed as a regression comparison, and continue to avoid free-form generation until evidence behavior is evaluated more broadly.

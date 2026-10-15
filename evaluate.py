@@ -13,6 +13,7 @@ from main import (
 
 
 QUESTIONS_PATH = Path(__file__).parent / "data" / "evaluation_questions.json"
+STRESS_QUESTIONS_PATH = Path(__file__).parent / "data" / "session4_stress_questions.json"
 TOP_K = 3
 
 
@@ -92,7 +93,7 @@ def evaluate_answers(questions, documents):
     print("\nExtractive answer and evidence-sufficiency check")
     print("ID   Expected   System decision   Evidence label")
     for item in questions:
-        result = answer_question(item["question"], documents)
+        result = answer_question(item["question"], documents, max_window_sentences=2)
         answered = result["answerable"]
         expected_ids = item["expected_source_ids"]
         if answered:
@@ -135,6 +136,78 @@ def evaluate_answers(questions, documents):
     print(f"Answer/abstain decision accuracy on this set: {decision_accuracy:.1%}")
 
 
+def evaluate_window_stress(questions, documents, max_window_sentences):
+    """Report exact evidence, answerable misses, unsupported answers, and abstentions."""
+    answerable = [item for item in questions if item["answerable"]]
+    unanswerable = [item for item in questions if not item["answerable"]]
+    exact_answers = 0
+    false_negatives = 0
+    false_positives = 0
+    correct_abstentions = 0
+    wrong_evidence = 0
+
+    print(f"\nSession 4 stress set — windows up to {max_window_sentences} sentence(s)")
+    print("ID      Label          Decision   Result")
+    for item in questions:
+        result = answer_question(
+            item["question"], documents, max_window_sentences=max_window_sentences
+        )
+        emitted = result["answerable"]
+        if item["answerable"]:
+            exact = (
+                emitted
+                and result["document"]["id"] in item["expected_source_ids"]
+                and result["sentence"] == item["expected_evidence"]
+            )
+            exact_answers += int(exact)
+            false_negatives += int(not emitted)
+            wrong_evidence += int(emitted and not exact)
+            outcome = "exact expected quote" if exact else ("abstained" if not emitted else "wrong source/quote")
+        else:
+            false_positives += int(emitted)
+            correct_abstentions += int(not emitted)
+            outcome = "FALSE POSITIVE" if emitted else "correct abstention"
+
+        label = "answerable" if item["answerable"] else "unsupported"
+        decision = "QUOTE" if emitted else "ABSTAIN"
+        print(f"{item['id']:<7} {label:<14} {decision:<10} {outcome}")
+        if item["id"] == "S4-Q3" and emitted:
+            print("        False-positive quote:")
+            print(f"        {result['sentence']}")
+
+    answerable_count = len(answerable)
+    unanswerable_count = len(unanswerable)
+    print(
+        f"Exact expected evidence: {exact_answers}/{answerable_count} "
+        f"({exact_answers / answerable_count:.1%})"
+    )
+    print(
+        f"Answerable false negatives (abstentions): {false_negatives}/{answerable_count} "
+        f"({false_negatives / answerable_count:.1%})"
+    )
+    print(f"Emitted but incorrect source/quote on answerable items: {wrong_evidence}")
+    print(
+        f"Unsupported false positives: {false_positives}/{unanswerable_count} "
+        f"({false_positives / unanswerable_count:.1%})"
+    )
+    print(
+        f"Correct abstentions: {correct_abstentions}/{unanswerable_count} "
+        f"({correct_abstentions / unanswerable_count:.1%})"
+    )
+
+
+def evaluate_stress_set(questions, documents):
+    """Compare fixed clue groups with one-sentence and up-to-two-sentence windows."""
+    print(
+        f"Fresh invented Session 4 challenge set: {len(questions)} questions "
+        f"({sum(item['answerable'] for item in questions)} answerable, "
+        f"{sum(not item['answerable'] for item in questions)} unsupported)."
+    )
+    print("The clue groups are unchanged from Session 3 for this comparison.")
+    evaluate_window_stress(questions, documents, max_window_sentences=1)
+    evaluate_window_stress(questions, documents, max_window_sentences=2)
+
+
 def main():
     documents = load_documents(DATA_PATH)
     questions = load_questions(QUESTIONS_PATH)
@@ -146,10 +219,13 @@ def main():
     evaluate_retrieval("Raw word-count cosine", search_documents, questions, documents)
     evaluate_retrieval("TF-IDF cosine", search_documents_tfidf, questions, documents)
     evaluate_answers(questions, documents)
+    stress_questions = load_questions(STRESS_QUESTIONS_PATH)
+    evaluate_stress_set(stress_questions, documents)
     print(
         "\nAll handbook text and evaluation labels are invented practice/reference data. "
         "No model is trained. These small hand-written results do not establish "
-        "general reliability; the concept groups are a transparent, manually chosen heuristic."
+        "general reliability; the concept groups are a transparent, manually chosen heuristic. "
+        "Session 4 questions are evaluation data, not training data."
     )
 
 
