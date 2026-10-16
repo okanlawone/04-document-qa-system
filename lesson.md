@@ -732,3 +732,162 @@ Keep the Session 3 clue groups fixed while reasoning about these results. Then a
 - [x] Explain why exact quotation and logical support are different.
 
 Project 4 remains open. The next checkpoint should investigate relationship-aware evidence checks with a new question set written before any rule changes. Keep the Session 4 challenge questions fixed as a regression comparison, and continue to avoid free-form generation until evidence behavior is evaluated more broadly.
+
+
+# Session 5: Can we check who did what and when?
+
+**Status:** Session 5 implementation and evaluation checkpoint complete; Project 4 remains active.
+
+**Today’s question:** If two sentences contain the right nouns, how can the program check whether they describe the relationship the question asks for?
+
+**What changed:** We wrote a new relationship-focused evaluation set and measured the old system before changing its rules. Then we added a small table of explicit relationships and a simple question-pattern matcher. The interactive program now uses that relationship path to quote one source sentence or abstain. The old clue and window approach remains available inside the evaluator for comparison.
+
+No generative model was added. No model was trained.
+
+## 1. From topic words to relationships
+
+Suppose a question asks, “Does the shop steward store protective equipment before tool use?” The words *shop steward*, *protective equipment*, and *tool* all appear in the handbook. But the handbook says two different things:
+
+1. Ask the shop steward before using a tool you have not used before.
+2. Shop stewards can explain safe setup and help identify protective equipment.
+
+It never says that a steward stores the equipment. A word-overlap rule can mistake nearby topics for evidence of an action.
+
+A relationship record makes more of the sentence structure visible. A common beginner-friendly shape is:
+
+```text
+subject — action — object — time/condition — location
+```
+
+For example:
+
+```text
+shop stewards — explain — safe setup — (not stated) — (not stated)
+```
+
+Another source sentence can be represented as:
+
+```text
+orientation — offered — event — Wednesday evenings — (not stated)
+```
+
+The words **subject**, **action**, and **object** answer three different questions:
+
+- **Subject:** who or what is doing something?
+- **Action** (also called a predicate or relation): what is happening?
+- **Object:** what receives the action, or what the action describes?
+
+The extra fields retain time, condition, day, or location when the source states them. A missing field stays missing. In particular, a location is not automatically the actor. “Clay and glaze are sold at the front desk” states a location, but does not name the seller. Our table records that missing seller as `null`.
+
+## 2. Where the relationships live
+
+Open `data/handbook_facts.json`. Each row contains:
+
+- `subject`, `action`, and `object`: the core relationship;
+- `time_or_condition`, `days`, and `location`: optional details;
+- `source_id`: the handbook record where the fact came from;
+- `evidence`: an exact source sentence that can be quoted.
+
+`load_handbook_facts` checks that each quote really occurs in the cited handbook text. This is a basic consistency check: it can catch a typo or a citation pointing to the wrong record. It cannot prove the annotation is a faithful interpretation. A person still decides which subject, action, and object the sentence expresses.
+
+These fact rows are **reference annotations**. They are not used to adjust learned model weights. In fact, no model exists in this project yet. The handbook is invented reference text; the fact table is a hand-written structured view of that text; the three question files are invented evaluation data. The expected answer labels stay in the evaluator and are not sent into the answer function.
+
+## 3. How a question reaches a quote
+
+The new path has four visible steps:
+
+```text
+question text
+    ↓ a few hand-written wording rules
+requested relationship frame
+    ↓ exact field checks
+matching fact row
+    ↓ verify source and quote
+quoted sentence + citation, or abstention
+```
+
+A **frame** is the small set of relationship fields that the question appears to request. For example, the code maps “Before I use an unfamiliar tool, who should I consult?” to the action `ask_steward_before_new_tool`. That action maps to a source row whose object is `shop steward` and whose condition is before use of a tool that is new to the visitor.
+
+For “Does the front desk cancel the booking two hours before it starts?”, the frame requests `cancel_booking_before_start` and requires the subject `front desk`. The cancellation fact has a null subject because the handbook does not specify who performs the cancellation. It also has no relationship tying the front desk to the cancellation act. So the action name alone is not enough: the requested subject constraint fails, and the system abstains.
+
+The question parser is ordinary, visible Python rules in `relationship_frame`. It checks words and a handful of patterns. It is not a general language parser. The exact action names make the intended logic easy to inspect, but they also make the system narrow: a new way to ask the same question may not match any rule.
+
+## 4. Write questions first, then measure the old behavior
+
+Before changing any rules, we created `data/session5_relationship_questions.json`. It contains ten invented questions:
+
+- six answerable questions about session duration, steward guidance, asking before tool use, orientation scheduling, cancellation timing, and orientation order;
+- four unsupported questions about storing equipment, a front-desk cancellation role, Saturday hours, and an unstated seller.
+
+The Session 4 questions remain unchanged in `data/session4_stress_questions.json`. That lets us compare the new experiment with the earlier evidence-window behavior.
+
+First we ran the old clue matcher. On the new ten-question set:
+
+| Existing method | Exact evidence on 6 answerable questions | False negatives (abstentions) | False positives on 4 unsupported questions | Correct abstentions |
+| --- | ---: | ---: | ---: | ---: |
+| Up to one sentence | 6/6 | 0/6 | 1/4 | 3/4 |
+| Up to two sentences | 6/6 | 0/6 | 2/4 | 2/4 |
+
+The one-sentence false positive was the front-desk question. The clue rule found cancellation timing in one sentence and accepted it even though that sentence does not assign the cancellation to the front desk. With two-sentence windows, the unsupported storage question also passed because the adjacent sentences together contained the steward, tool, setup, and protective-equipment clues. Those words still did not prove a storage action.
+
+This is the key reasoning step: **retrieving the right source is not the same as confirming the requested relationship.** A quote can come from the expected document and still fail to support the claim.
+
+## 5. What the relationship experiment returned
+
+The explicit fact checker produced these counts on the same ten questions:
+
+| Measure | Relationship-fact prototype |
+| --- | ---: |
+| Exact labeled source quote for answerable questions | 6/6 |
+| False negatives (abstentions on answerable questions) | 0/6 |
+| Wrong source or evidence on answerable questions | 0 |
+| False positives on unsupported questions | 0/4 |
+| Correct abstentions on unsupported questions | 4/4 |
+
+The Session 4 regression comparison returned source-correct evidence spans for 3/3 answerable questions, abstained on 2/2 unsupported questions, and produced no wrong evidence. Two Session 4 quotes exactly matched their labels; for one question the fact checker returned a single-sentence quote contained inside the two-sentence expected label.
+
+These numbers are **not** a reliability estimate. Although we wrote the new questions before editing the rules and recorded the old baseline first, we then used those question patterns to guide the relationship parser. The Session 5 set is therefore development material for the new system, not an independent blind test. Session 4 is a useful regression check, but its earlier questions and failure are already known. The next session must write a fresh challenge before making further changes and keep it unchanged while evaluating.
+
+## 6. Important limits of an explicit fact table
+
+A relationship table can make certain mismatches easier to see, but this version still has limits:
+
+1. **Manual annotation can be wrong.** Someone must decide how each sentence maps to fields. The quote validator checks that words are present, not that the interpretation is correct.
+2. **The parser has narrow vocabulary.** `relationship_frame` knows only a few visible patterns. “Who should I check with?” might mean the same thing as “who should I consult?” and still fail.
+3. **The fact table is incomplete.** A missing row makes a supported question look unsupported. Abstention can be caused by missing knowledge as well as by truly absent evidence.
+4. **Negation and question polarity need care.** For “Does orientation happen after tool use?”, the evidence says orientation must be completed before tool use. The prototype shows the relevant quote; it does not compose the word “No” or claim to generate a yes/no answer.
+5. **One source sentence can contain more than one clause.** The 90-minute duration quote also mentions reservation notice. A more advanced system could split facts and preserve a smaller exact quote for each one.
+6. **The sample is tiny and fictional.** The rates change sharply when one example changes and say nothing about real handbooks or users.
+
+## 7. Experiments to try
+
+Make one change at a time and predict the result before running the evaluator:
+
+- Change “shop steward” to a new paraphrase such as “workshop guide.” Does the frame still match? Is an abstention a missing fact or unfamiliar wording?
+- Change the required actor from `front desk` to a participant. What must the handbook actually say before that actor can be placed in the record?
+- Change `days` from `weekdays` to a specific day. What evidence is needed before the system should claim Saturday hours?
+- Temporarily remove the orientation fact. Does the answer path abstain even though the handbook sentence still exists? Why?
+- Split the multi-clause session-duration sentence into smaller facts while keeping the exact source quote. Which evidence span should be returned for a question asking only how long a session lasts?
+- Invent a new question whose subject, action, or timing is absent. Write it down before changing `relationship_frame` or `handbook_facts.json`.
+
+## 8. Reflection questions
+
+1. Why does the presence of “front desk,” “cancel,” and “two hours” in nearby text fail to prove that the front desk cancels the booking?
+2. In the clay-sale record, why is `location="front desk"` different from `subject="front desk"`?
+3. If the fact table has no seller, does that prove nobody sells the clay? What is the difference between “the source does not say” and “the event does not happen”?
+4. Which parts of the relationship are extracted from text, and which were supplied by the person who wrote the fact record?
+5. The new rule returned 6/6 exact quotes and abstained on 4/4 unsupported cases here. What new examples would make you less confident in that result?
+6. Would you rather see a system abstain on unfamiliar wording or risk matching an incorrect relationship? What additional evaluation evidence would help you choose?
+
+## 9. Session 5 completion checks
+
+- [x] Write the fresh relationship question file before editing the relationship rules.
+- [x] Record one-sentence and two-sentence baseline results first.
+- [x] Represent subjects, actions, objects, times/conditions, days, locations, and source quotes explicitly.
+- [x] Check that each structured evidence quote exists in its cited source.
+- [x] Compare exact evidence, false positives, false negatives, wrong evidence, and correct abstentions.
+- [x] Run the unchanged Session 4 questions as a regression comparison.
+- [x] Keep the interactive path quote-based and avoid free-form generation.
+- [x] State clearly that Session 5 was used to develop the new rules and is not a blind evaluation.
+
+Project 4 remains active. For Session 6, write a genuinely fresh challenge set before changing the parser or fact records. Keep Sessions 4 and 5 unchanged as regression checks. Continue to avoid free-form model generation until the evidence checks have broader, less self-referential evaluation.

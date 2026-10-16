@@ -6,6 +6,8 @@ from pathlib import Path
 from main import (
     DATA_PATH,
     answer_question,
+    answer_question_with_relationships,
+    load_handbook_facts,
     load_documents,
     search_documents,
     search_documents_tfidf,
@@ -14,6 +16,7 @@ from main import (
 
 QUESTIONS_PATH = Path(__file__).parent / "data" / "evaluation_questions.json"
 STRESS_QUESTIONS_PATH = Path(__file__).parent / "data" / "session4_stress_questions.json"
+RELATIONSHIP_QUESTIONS_PATH = Path(__file__).parent / "data" / "session5_relationship_questions.json"
 TOP_K = 3
 
 
@@ -208,6 +211,98 @@ def evaluate_stress_set(questions, documents):
     evaluate_window_stress(questions, documents, max_window_sentences=2)
 
 
+
+def summarize_answer_behavior(label, questions, answer_function):
+    """Count exact quotes, false positives, false negatives, and abstentions."""
+    totals = {
+        "exact_evidence": 0,
+        "labeled_evidence_span": 0,
+        "false_negatives": 0,
+        "wrong_evidence": 0,
+        "false_positives": 0,
+        "correct_abstentions": 0,
+    }
+
+    print(f"\n{label}")
+    for item in questions:
+        result = answer_function(item)
+        emitted = result["answerable"]
+        source_ok = emitted and result["document"]["id"] in item["expected_source_ids"]
+        exact = source_ok and result["sentence"] == item.get("expected_evidence")
+        labeled_span = source_ok and result["sentence"] in (item.get("expected_evidence") or "")
+
+        if item["answerable"]:
+            totals["exact_evidence"] += int(exact)
+            totals["labeled_evidence_span"] += int(labeled_span)
+            totals["false_negatives"] += int(not emitted)
+            totals["wrong_evidence"] += int(emitted and not labeled_span)
+            outcome = "exact labeled quote" if exact else (
+                "source quote is a labeled subspan" if labeled_span else (
+                    "abstention / false negative" if not emitted else "wrong source or evidence"
+                )
+            )
+        else:
+            totals["false_positives"] += int(emitted)
+            totals["correct_abstentions"] += int(not emitted)
+            outcome = "FALSE POSITIVE" if emitted else "correct abstention"
+
+        decision = "QUOTE" if emitted else "ABSTAIN"
+        print(f"{item['id']:<7} {decision:<9} {outcome}")
+        if emitted and (not item["answerable"] or not labeled_span):
+            print(f"        Quoted: {result['sentence']}")
+        elif not emitted:
+            print(f"        Reason: {result.get('reason', 'No matching fact was found.')}")
+
+    answerable_count = sum(item["answerable"] for item in questions)
+    unsupported_count = len(questions) - answerable_count
+    print(
+        f"Exact labeled evidence: {totals['exact_evidence']}/{answerable_count}; "
+        f"source-correct labeled evidence spans: {totals['labeled_evidence_span']}/{answerable_count}"
+    )
+    print(
+        f"False negatives (abstentions on answerable questions): "
+        f"{totals['false_negatives']}/{answerable_count}"
+    )
+    print(f"Wrong source/evidence on answerable questions: {totals['wrong_evidence']}")
+    print(f"False positives on unsupported questions: {totals['false_positives']}/{unsupported_count}")
+    print(f"Correct abstentions: {totals['correct_abstentions']}/{unsupported_count}")
+    return totals
+
+
+def evaluate_session5_and_relationship_regression(questions, stress_questions, documents):
+    """Compare the held-out set before and after the explicit-fact experiment."""
+    facts = load_handbook_facts(Path(__file__).parent / "data" / "handbook_facts.json", documents)
+    print(
+        f"\nSession 5 fresh relationship set: {len(questions)} invented questions "
+        f"({sum(item['answerable'] for item in questions)} answerable, "
+        f"{sum(not item['answerable'] for item in questions)} unsupported)."
+    )
+    print("Relationship annotations are hand-written reference metadata, not learned parameters.")
+
+    for width in (1, 2):
+        summarize_answer_behavior(
+            f"Existing topic-clue baseline — windows up to {width} sentence(s)",
+            questions,
+            lambda item, window=width: answer_question(
+                item["question"], documents, max_window_sentences=window
+            ),
+        )
+
+    summarize_answer_behavior(
+        "Explicit relationship-fact check — Session 5 questions",
+        questions,
+        lambda item: answer_question_with_relationships(
+            item["question"], documents, facts=facts
+        ),
+    )
+    summarize_answer_behavior(
+        "Explicit relationship-fact check — preserved Session 4 regression set",
+        stress_questions,
+        lambda item: answer_question_with_relationships(
+            item["question"], documents, facts=facts
+        ),
+    )
+
 def main():
     documents = load_documents(DATA_PATH)
     questions = load_questions(QUESTIONS_PATH)
@@ -221,11 +316,16 @@ def main():
     evaluate_answers(questions, documents)
     stress_questions = load_questions(STRESS_QUESTIONS_PATH)
     evaluate_stress_set(stress_questions, documents)
+    relationship_questions = load_questions(RELATIONSHIP_QUESTIONS_PATH)
+    evaluate_session5_and_relationship_regression(
+        relationship_questions, stress_questions, documents
+    )
     print(
         "\nAll handbook text and evaluation labels are invented practice/reference data. "
         "No model is trained. These small hand-written results do not establish "
-        "general reliability; the concept groups are a transparent, manually chosen heuristic. "
-        "Session 4 questions are evaluation data, not training data."
+        "general reliability; both the concept groups and relationship records are "
+        "manually authored teaching rules/annotations. Session 4 and Session 5 questions "
+        "are evaluation data, not training data."
     )
 
 

@@ -229,6 +229,172 @@ def answer_question(question, documents, max_window_sentences=1):
     return {"answerable": False, "reason": "No handbook passage shared searchable words with the question."}
 
 
+
+FACTS_PATH = Path(__file__).parent / "data" / "handbook_facts.json"
+
+
+def load_handbook_facts(path, documents):
+    """Load hand-written relationship annotations and verify every quote."""
+    with path.open(encoding="utf-8") as file:
+        facts = json.load(file)
+
+    documents_by_id = {document["id"]: document for document in documents}
+    required_fields = {
+        "id", "subject", "action", "object", "time_or_condition", "days",
+        "location", "source_id", "evidence",
+    }
+    for fact in facts:
+        missing_fields = required_fields - fact.keys()
+        if missing_fields:
+            raise ValueError(
+                f"Fact {fact!r} is missing: {', '.join(sorted(missing_fields))}"
+            )
+        document = documents_by_id.get(fact["source_id"])
+        if document is None or fact["evidence"] not in document["text"]:
+            raise ValueError(
+                f"Fact {fact['id']} must quote text from its labeled source document."
+            )
+    return facts
+
+
+def relationship_frame(question):
+    """Map a few visible question patterns to explicit relation constraints."""
+    words = set(tokenize(question))
+
+    # Check special requested details before broader relation types so that
+    # matching topic words cannot hide an unsupported relation.
+    if "parking" in words:
+        return {"action": "parking_included", "requested": "parking inclusion"}
+
+    if "store" in words or "stores" in words or "stored" in words:
+        return {
+            "action": "steward_stores_equipment",
+            "requested": "shop steward stores protective equipment",
+            "subject_required": "shop steward",
+            "object_required": "protective equipment",
+        }
+
+    if "ceramic" in words or "ceramics" in words:
+        if words & {"open", "opening", "late", "weekday", "weekdays", "saturday", "schedule", "hours", "visit"}:
+            day = "Saturday" if "saturday" in words else ("weekdays" if words & {"weekday", "weekdays"} else None)
+            return {
+                "action": "room_open_schedule",
+                "requested": "ceramics room opening schedule",
+                "subject_required": "ceramics room",
+                "day_required": day,
+            }
+
+    if "sell" in words or "sells" in words or "sold" in words:
+        if "clay" in words or "glaze" in words:
+            return {
+                "action": "clay_sale",
+                "requested": "who sells clay or glaze",
+                "ask_for_subject": bool(words & {"who", "seller"}),
+                "location_required": "front desk" if "desk" in words else None,
+            }
+
+    if words & {"cancel", "canceled", "cancelled", "cancellation"}:
+        return {
+            "action": "cancel_booking_before_start",
+            "requested": "who cancels a booking and when",
+            "subject_required": "front desk" if "desk" in words else None,
+            "object_required": "booking",
+        }
+
+    if "orientation" in words and ("tool" in words or "powered" in words):
+        return {
+            "action": "orientation_before_powered_tool",
+            "requested": "orientation timing relative to powered-tool use",
+        }
+
+    if "orientation" in words and words & {"when", "day", "evening", "evenings", "offered", "available"}:
+        return {
+            "action": "orientation_schedule",
+            "requested": "when the orientation is offered",
+        }
+
+    if words & {"minutes", "minute", "duration", "length", "long"}:
+        return {
+            "action": "session_duration",
+            "requested": "woodshop session duration",
+            "object_required": "90 minutes",
+        }
+
+    if words & {"ask", "speak", "consult"} and words & {"tool", "unfamiliar", "before"}:
+        return {
+            "action": "ask_steward_before_new_tool",
+            "requested": "who to ask before using an unfamiliar tool",
+            "object_required": "shop steward",
+        }
+
+    if words & {"explain", "guide", "prepare", "setup"} and words & {"who", "which", "person", "steward", "safely", "safe"}:
+        return {
+            "action": "explain_safe_setup",
+            "requested": "who explains safe setup",
+            "object_required": "safe setup",
+            "ask_for_subject": bool(words & {"who", "which", "person"}),
+        }
+
+    return None
+
+
+def fact_matches_frame(fact, frame):
+    """Require the requested relationship slots to agree with the fact record."""
+    if fact["action"] != frame["action"]:
+        return False
+
+    object_required = frame.get("object_required")
+    if object_required and object_required not in (fact["object"] or ""):
+        return False
+
+    subject_required = frame.get("subject_required")
+    if subject_required and subject_required != (fact["subject"] or "").lower():
+        return False
+
+    location_required = frame.get("location_required")
+    if location_required and location_required != (fact["location"] or "").lower():
+        return False
+
+    day_required = frame.get("day_required")
+    if day_required and day_required not in fact["days"]:
+        return False
+
+    if frame.get("ask_for_subject") and not fact["subject"]:
+        return False
+
+    return True
+
+
+def answer_question_with_relationships(question, documents, facts=None):
+    """Quote a cited fact only when its labeled relationship matches the question."""
+    if facts is None:
+        facts = load_handbook_facts(FACTS_PATH, documents)
+
+    frame = relationship_frame(question)
+    if frame is None:
+        return {
+            "answerable": False,
+            "reason": "This teaching prototype has no question-to-relationship rule for that wording.",
+        }
+
+    matches = [fact for fact in facts if fact_matches_frame(fact, frame)]
+    if not matches:
+        return {
+            "answerable": False,
+            "reason": "No source fact matched all requested relationship details.",
+            "frame": frame,
+        }
+
+    fact = matches[0]
+    document = next(doc for doc in documents if doc["id"] == fact["source_id"])
+    return {
+        "answerable": True,
+        "frame": frame,
+        "fact": fact,
+        "document": document,
+        "sentence": fact["evidence"],
+    }
+
 def main():
     documents = load_documents(DATA_PATH)
     question = input("Ask a question about the Northstar Workshop: ").strip()
@@ -237,25 +403,23 @@ def main():
         print("Please enter a question so the program has words to search for.")
         return
 
-    result = answer_question(question, documents)
+    result = answer_question_with_relationships(question, documents)
     if result["answerable"]:
         document = result["document"]
-        print("\nEvidence-based answer (the wording is quoted, not generated):")
+        fact = result["fact"]
+        print("\nRelevant source evidence (quoted, not generated):")
         print(f'“{result["sentence"]}”')
         print(f"Source: {document['title']} [{document['id']}] — {document['source']}")
         print(
-            "Topic clues checked: "
-            + ", ".join(result["covered_concepts"])
+            "Matched relationship fields: "
+            f"subject={fact['subject'] or 'not stated'}; "
+            f"action={fact['action']}; object={fact['object']}; "
+            f"time/condition={fact['time_or_condition'] or 'not stated'}"
         )
+        print("This is source evidence, not a generated yes/no response.")
         return
 
     print("\nI cannot answer from the handbook: " + result["reason"])
-    if result.get("document"):
-        document = result["document"]
-        print("Closest passage (shown for inspection; it is not an answer):")
-        print(f'“{result["sentence"]}”')
-        print(f"Source: {document['title']} [{document['id']}] — {document['source']}")
-        print("Missing topic clues: " + ", ".join(result["missing_concepts"]))
 
 
 if __name__ == "__main__":

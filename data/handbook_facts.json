@@ -1,0 +1,90 @@
+[
+  {
+    "id": "F-WS02-DURATION",
+    "subject": "session",
+    "action": "session_duration",
+    "object": "90 minutes",
+    "time_or_condition": "per session",
+    "days": [],
+    "location": null,
+    "source_id": "WS-02",
+    "evidence": "A session lasts 90 minutes, and reservations must be made at least 24 hours before the session begins."
+  },
+  {
+    "id": "F-WS05-EXPLAIN",
+    "subject": "shop stewards",
+    "action": "explain_safe_setup",
+    "object": "safe setup",
+    "time_or_condition": null,
+    "days": [],
+    "location": null,
+    "source_id": "WS-05",
+    "evidence": "Shop stewards can explain safe setup and help identify the correct protective equipment."
+  },
+  {
+    "id": "F-WS05-ASK",
+    "subject": "workshop visitor (implied)",
+    "action": "ask_steward_before_new_tool",
+    "object": "shop steward",
+    "time_or_condition": "before using a tool the visitor has not used before",
+    "days": [],
+    "location": null,
+    "source_id": "WS-05",
+    "evidence": "Ask the shop steward before using a tool you have not used before."
+  },
+  {
+    "id": "F-WS01-ORIENTATION-SCHEDULE",
+    "subject": "safety orientation",
+    "action": "orientation_schedule",
+    "object": "offered event",
+    "time_or_condition": "Wednesday evenings",
+    "days": ["Wednesday"],
+    "location": null,
+    "source_id": "WS-01",
+    "evidence": "The orientation is offered on Wednesday evenings."
+  },
+  {
+    "id": "F-WS03-CANCEL",
+    "subject": null,
+    "action": "cancel_booking_before_start",
+    "object": "booking",
+    "time_or_condition": "at least two hours before it starts",
+    "days": [],
+    "location": null,
+    "source_id": "WS-03",
+    "evidence": "To release a reserved time for another member, cancel the booking at least two hours before it starts."
+  },
+  {
+    "id": "F-WS01-ORIENTATION-PREREQUISITE",
+    "subject": "every member",
+    "action": "orientation_before_powered_tool",
+    "object": "safety orientation before powered-tool use",
+    "time_or_condition": "before using any powered tool",
+    "days": [],
+    "location": null,
+    "source_id": "WS-01",
+    "evidence": "Every member must complete the safety orientation before using any powered tool."
+  },
+  {
+    "id": "F-WS04-ROOM-HOURS",
+    "subject": "ceramics room",
+    "action": "room_open_schedule",
+    "object": "open hours",
+    "time_or_condition": "10 in the morning until 8 in the evening on weekdays",
+    "days": ["weekdays"],
+    "location": null,
+    "source_id": "WS-04",
+    "evidence": "The ceramics room is open on weekdays from 10 in the morning until 8 in the evening."
+  },
+  {
+    "id": "F-WS04-CLAY-SALE",
+    "subject": null,
+    "action": "clay_sale",
+    "object": "clay and glaze",
+    "time_or_condition": null,
+    "days": [],
+    "location": "front desk",
+    "source_id": "WS-04",
+    "evidence": "Clay and glaze are sold at the front desk."
+  }
+]

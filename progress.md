@@ -41,12 +41,24 @@ Build and understand a document question-answering system that retrieves relevan
 - [x] Explain how a larger window recovers an answerable case and creates a false positive by joining nearby topic clues.
 - [x] Default the interactive answer path to one sentence after observing the wider-window false positive; keep both settings in the evaluator.
 
-### Next learning checkpoint — Test relationships
+### Session 5 — Represent relationships explicitly
 
-- [ ] Keep the five Session 4 questions as a fixed regression comparison.
-- [ ] Write a second, fresh question set before changing rules.
-- [ ] Investigate whether a relationship-aware representation can distinguish who did what and when.
-- [ ] Report exact evidence, false positives, false negatives, and abstentions separately.
+- [x] Write ten fresh relationship-focused questions before changing the answer rules.
+- [x] Record the original one-sentence and two-sentence clue baselines first.
+- [x] Add hand-written subject, action, object, time/condition, day, and location facts tied to exact source quotes.
+- [x] Require requested relationship fields to match before quoting evidence.
+- [x] Keep the question labels out of the answer function and validate fact quotes against their cited source.
+- [x] Report exact evidence, false positives, false negatives, wrong evidence, and correct abstentions separately.
+- [x] Run the unchanged Session 4 set as a regression check.
+- [x] Document that Session 5 was used to shape the new rules and is not a blind evaluation.
+- [x] Keep answers extractive and add no free-form generation.
+
+### Next learning checkpoint — Stress-test relationships
+
+- [ ] Keep the Session 4 and Session 5 question files unchanged as regression checks.
+- [ ] Write a fresh Session 6 relationship set before changing the parser or fact annotations.
+- [ ] Include unseen paraphrases, actor swaps, time-order reversals, and missing-agent questions.
+- [ ] Measure exact evidence, wrong evidence, false positives, false negatives, and correct abstentions separately.
 - [ ] Do not introduce free-form generation until evidence behavior is evaluated more broadly.
 
 ### Later extensions (only after the foundations are understood)
@@ -100,3 +112,14 @@ Add your own observations here after trying the program:
 - The learner can describe the limits of this hand-written evaluation and propose a fresh challenge question.
 - The learner can explain the measured one-sentence versus two-sentence trade-off, including the relationship false positive.
 - The system communicates its limits instead of presenting unsupported guesses as facts.
+
+
+## Session 5 checkpoint — relationship-aware evidence
+
+`data/session5_relationship_questions.json` contains six answerable and four unsupported invented questions. Before editing the rules, the existing topic-clue system returned exact expected evidence for 6/6 answerable items; its one-sentence configuration produced 1/4 false positives and 3/4 correct abstentions, while the two-sentence configuration produced 2/4 false positives and 2/4 correct abstentions. The false positives assigned cancellation to the front desk and storage to the steward without source support.
+
+`data/handbook_facts.json` now holds manually authored subject/action/object records, optional time/day/location fields, source IDs, and exact quotes. `load_handbook_facts` checks that each quote appears in its labeled document. `relationship_frame` maps a few visible question patterns into requested relationship fields; `fact_matches_frame` requires the requested fields to match. The CLI quotes a matching source sentence and its fields, or abstains. It does not generate a yes/no answer.
+
+On Session 5, this prototype returned exact labeled evidence for 6/6 answerable questions, abstained on 0/6 answerable questions, produced 0/4 false positives, and correctly abstained on 4/4 unsupported questions. On the unchanged Session 4 set, it returned source-correct evidence spans for 3/3 answerable cases (two exact full labels and one exact subspan), abstained on 2/2 unsupported cases, and produced no wrong evidence. These are results on tiny invented examples. Session 5's question wording influenced rule design, so these results are development observations rather than blind-test evidence. All handbook/fact-table content is reference data, question labels are evaluation data, and no model is trained.
+
+Session 5 is complete. Project 4 remains active. Session 6 must write a fresh relationship challenge before changing rules, retain Sessions 4 and 5 as regression checks, and continue to exclude generative answers until evidence behavior has broader evaluation.

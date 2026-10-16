@@ -1,58 +1,64 @@
-# Document Q&A System — Retrieval-First Baseline
+# Document Q&A System — Retrieval and Evidence Workshop
 
 This project is inspired by **“Building a Document Q&A System,”** one of the retrieval and knowledge projects in [40 AI Projects That Show Real AI Engineering Skills](https://amanxai.com/2026/10/09/40-ai-projects-that-show-real-ai-engineering-skills/).
 
 ## The project challenge
 
-Build a small system that can answer questions from a collection of documents and show the evidence it used. We will grow it in milestones so you understand each part instead of copying a large framework.
+Build a small system that finds source passages for questions, checks whether the requested relationship is present, and either quotes the evidence or abstains. The work proceeds in sessions so each stage can be understood before more machinery is added.
 
-**Current milestone:** stress-test a cautious extractive evidence rule using one-sentence and up-to-two-sentence windows. The interactive program defaults to one-sentence evidence and quotes its source or abstains; the evaluator also compares a two-sentence option. A fresh challenge set exposes both missed answers and unsupported relationships. It does not call an LLM or train a machine-learning model.
+**Current milestone:** Session 5 represents a few facts as subject–action–object relationships with optional time, day, condition, and location fields. The command-line program uses a small, visible set of question-pattern rules and quotes an exact source sentence. It does not compose a yes/no answer, use an LLM, use embeddings, or train a machine-learning model.
 
-## Practice data
+## Practice data and labels
 
-`data/handbook.json` contains an **invented Northstar Community Workshop handbook** made for this project. It is fictional practice content, not real policy and not personal or customer data. These passages are the system's lookup knowledge; they are not a dataset used to train a model. `data/evaluation_questions.json` holds the original 13 hand-written evaluation questions; `data/session4_stress_questions.json` holds five fresh Session 4 challenge questions. Expected evidence labels are evaluation references, not training targets. No file trains a model, and these small sets cannot prove broad performance.
+- `data/handbook.json` is an invented Northstar Workshop handbook used only as reference text. It is not real guidance.
+- `data/handbook_facts.json` contains hand-written relationship annotations tied to exact source quotes. These annotations are reference metadata, not model-training examples.
+- `data/evaluation_questions.json`, `data/session4_stress_questions.json`, and `data/session5_relationship_questions.json` contain hand-written evaluation questions and labels. Expected sources and quotes are evaluation references; the answer code does not read them.
+- No model is trained. The tiny invented sets diagnose examples and do not establish general performance.
 
 ## Run it
 
-You need Python 3. The first milestone uses only Python's standard library, so no package installation is required.
+You need Python 3. The project uses only Python's standard library.
 
 ```bash
 python3 main.py
 ```
 
-When prompted, try a question such as:
+Try a supported question:
 
 ```text
-How early should I reserve a woodshop session?
+Before I use an unfamiliar tool, who should I consult?
 ```
 
-Then try a question using different wording:
+Then try a relationship trap:
 
 ```text
-When do I need to book the workshop?
+Does the front desk cancel the booking two hours before it starts?
 ```
 
-Compare the returned passage, source, and score. The simple baseline recognizes shared words; it does not understand that “book” and “reserve” are related meanings.
+For the first question, the program quotes the source sentence and shows the relationship fields. For the second, it abstains: the handbook mentions cancellation timing and the front desk, but it does not say the front desk performs the cancellation. The system returns evidence, not a generated yes/no answer.
 
-To reproduce the retrieval, answer, and evidence-window evaluations, run:
+Reproduce all retrieval, topic-clue, window-size, and relationship evaluations with:
 
 ```bash
 python3 evaluate.py
 ```
 
-The evaluator compares raw word-count cosine similarity with TF-IDF, repeats the Session 3 answer checks, and compares one-sentence with up-to-two-sentence evidence windows on the Session 4 challenge set. TF-IDF gives relatively more weight to words that occur in fewer handbook passages. Both retrieval methods still depend on word overlap.
-
 ## Learning path
 
-- **Session 1 — Find evidence:** inspect the documents, turn words into counts, compare a question with each document using cosine similarity, and study where the ranking fails.
-- **Session 2 — Measure retrieval:** compare raw word counts with TF-IDF. On the original seven answerable questions, raw counts ranked the expected source first on 3/7 and TF-IDF on 1/7; both placed it in the top three on 7/7. Both retrieval methods returned a passage for all three original unanswerable questions.
-- **Session 3 — Check evidence before answering:** quote one or two original adjacent sentences with a record citation only when every manually detected question-topic group appears in that evidence window and title; otherwise abstain. Across the 13-question invented evaluation set, the code returned the labeled source quote for 7/7 answerable questions and abstained for 6/6 unanswerable questions. Retrieval alone still returned candidates for all 6/6 unanswerable questions. These are results on a tiny, hand-written set, not evidence of general reliability.
-- **Session 4 — Stress-test evidence windows:** the five-question invented challenge set was evaluated with the Session 3 clue groups unchanged. One-sentence windows produced exact expected quotes for 2/3 answerable questions, abstained on 1/3 answerable questions, and correctly abstained on both unsupported questions. Up-to-two-sentence windows produced exact expected quotes for 3/3 answerable questions, but also quoted evidence for 1/2 unsupported questions by combining nearby clues without supporting the requested storage action. These tiny hand-written results are diagnostic examples, not general performance estimates. The interactive program defaults to one sentence after the two-sentence configuration produced an unsupported quote on this set; one-sentence mode still misses one answerable paraphrase.
-- **Next learning checkpoint — Check relationships:** preserve the Session 4 set as a regression check, write another fresh set before changing rules, and investigate how a system can distinguish who did what and when rather than only checking whether topic clues co-occur.
-- **Later experiments:** split longer documents into chunks and compare keyword retrieval with semantic embeddings. Consider free-form generation only after the evidence checks are better understood; verify every generated claim against a source.
+- **Session 1 — Find evidence:** tokenize text, count words, rank passages with cosine similarity, and inspect source citations.
+- **Session 2 — Measure retrieval:** compare raw word counts with TF-IDF. On the original seven answerable questions, raw counts ranked the expected source first on 3/7 and TF-IDF on 1/7; both placed it in the top three on 7/7. Both returned a candidate for all 3/3 unanswerable questions.
+- **Session 3 — Check evidence before answering:** add manually written topic clues and an extractive response with an abstention path. On that 13-question invented set, the expected quote was returned for 7/7 answerable cases and the system abstained for 6/6 unanswerable cases. These are diagnostic counts, not general performance estimates.
+- **Session 4 — Stress-test evidence windows:** with the same clue groups, one-sentence windows quoted the expected evidence for 2/3 answerable questions, abstained on 1/3 answerable questions, and correctly abstained on 2/2 unsupported questions. Up-to-two-sentence windows quoted 3/3 answerable cases but produced a false positive on 1/2 unsupported cases by joining nearby clues without proving that the steward stored equipment.
+- **Session 5 — Represent relationships:** the new ten-question set has six answerable and four unsupported questions. Before changing the code, the existing one-sentence clue method produced exact expected quotes for 6/6 answerable questions and one false positive among four unsupported questions. The two-sentence version produced exact expected quotes for 6/6 and two false positives among four unsupported questions. The relationship-fact prototype produced exact expected quotes for 6/6 and abstained on all 4/4 unsupported questions. On the preserved Session 4 set, it returned source-correct evidence for 3/3 answerable questions (one quote was a labeled subspan) and abstained on 2/2 unsupported questions.
 
-The clue groups are manually written, not learned language understanding. They can miss paraphrases or approve words that do not logically support an answer. This project is still a retrieval-first extractive system, not a complete RAG system: it does not include a generator. No model has been trained.
+Session 5 question wording was used while writing the new relationship rules, so those results are development-set observations, not a blind test of the new rules. All results come from small invented examples. The detailed guide explains this limitation and sets up a genuinely fresh Session 6 challenge before any further rule changes.
 
-## Completion goal
+## What the relationship fields mean
 
-The project is complete when it can retrieve useful evidence from more than one document, show where the evidence came from, handle a question with no useful match honestly, and explain its known limitations using a small evaluation set.
+A **relationship** records which participant did what, to what, and under which conditions. In `handbook_facts.json`, each record has a subject, action, object, optional time or condition, optional days or location, a source ID, and an exact evidence quote. A `null` subject means the source did not state who performed the action. The matcher checks these fields instead of treating all nearby topic words as proof.
+
+This is still a narrow hand-built prototype. Its question parser recognizes a few visible wording patterns, and the fact records were annotated by a person. It can abstain on a supported question if the wording is new, and a mistaken annotation or overly broad rule can still produce an error. The project does not claim human-like understanding.
+
+## Next learning checkpoint
+
+Keep the Session 4 and Session 5 question files unchanged as regression checks. Before changing any parser or fact rule, write a new Session 6 challenge set containing unseen paraphrases, changed actor roles, time-order reversals, and missing agents. Measure exact evidence, wrong evidence, false negatives, false positives, and correct abstentions separately. Do not add free-form generation until evidence behavior has been evaluated more broadly.

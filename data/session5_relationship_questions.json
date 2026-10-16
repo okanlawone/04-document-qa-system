@@ -1,0 +1,78 @@
+[
+  {
+    "id": "S5-Q1",
+    "question": "How many minutes is a woodshop session booked for?",
+    "expected_source_ids": ["WS-02"],
+    "expected_evidence": "A session lasts 90 minutes, and reservations must be made at least 24 hours before the session begins.",
+    "answerable": true,
+    "question_type": "duration relation"
+  },
+  {
+    "id": "S5-Q2",
+    "question": "Which person can explain safe setup?",
+    "expected_source_ids": ["WS-05"],
+    "expected_evidence": "Shop stewards can explain safe setup and help identify the correct protective equipment.",
+    "answerable": true,
+    "question_type": "who-explains-what relation"
+  },
+  {
+    "id": "S5-Q3",
+    "question": "Before I use an unfamiliar tool, who should I consult?",
+    "expected_source_ids": ["WS-05"],
+    "expected_evidence": "Ask the shop steward before using a tool you have not used before.",
+    "answerable": true,
+    "question_type": "who-to-ask-before-when relation"
+  },
+  {
+    "id": "S5-Q4",
+    "question": "On what evenings is the safety orientation available?",
+    "expected_source_ids": ["WS-01"],
+    "expected_evidence": "The orientation is offered on Wednesday evenings.",
+    "answerable": true,
+    "question_type": "when-is-an-event-offered relation"
+  },
+  {
+    "id": "S5-Q5",
+    "question": "To free a reservation for someone else, how long before it starts must I cancel?",
+    "expected_source_ids": ["WS-03"],
+    "expected_evidence": "To release a reserved time for another member, cancel the booking at least two hours before it starts.",
+    "answerable": true,
+    "question_type": "who-does-what-by-when relation"
+  },
+  {
+    "id": "S5-Q6",
+    "question": "Does the shop steward store protective equipment before tool use?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "unsupported actor-action-object relation with overlapping topic clues"
+  },
+  {
+    "id": "S5-Q7",
+    "question": "Does the front desk cancel the booking two hours before it starts?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "unsupported actor-action-time relation"
+  },
+  {
+    "id": "S5-Q8",
+    "question": "Is Saturday included in the ceramics room's weekday opening schedule?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "unsupported day relation despite schedule topic overlap"
+  },
+  {
+    "id": "S5-Q9",
+    "question": "Does the safety orientation happen after someone starts using a powered tool?",
+    "expected_source_ids": ["WS-01"],
+    "expected_evidence": "Every member must complete the safety orientation before using any powered tool.",
+    "answerable": true,
+    "question_type": "temporal direction check; source evidence states the opposite ordering"
+  },
+  {
+    "id": "S5-Q10",
+    "question": "Who sells clay at the front desk?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "agent is unspecified; sale and location clues are present"
+  }
+]
