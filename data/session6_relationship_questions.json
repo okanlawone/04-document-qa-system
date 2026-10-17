@@ -1,0 +1,84 @@
+[
+  {
+    "id": "S6-Q1",
+    "question": "What is the cutoff for giving up my reserved time so another member can use it?",
+    "expected_source_ids": [
+      "WS-03"
+    ],
+    "expected_evidence": "To release a reserved time for another member, cancel the booking at least two hours before it starts.",
+    "answerable": true,
+    "question_type": "unseen paraphrase of a cancellation deadline"
+  },
+  {
+    "id": "S6-Q2",
+    "question": "Who can show a first-time user how to configure a tool safely?",
+    "expected_source_ids": [
+      "WS-05"
+    ],
+    "expected_evidence": "Shop stewards can explain safe setup and help identify the correct protective equipment.",
+    "answerable": true,
+    "question_type": "unseen paraphrase of who explains safe setup"
+  },
+  {
+    "id": "S6-Q3",
+    "question": "Who should a beginner check with before trying a tool they have never used?",
+    "expected_source_ids": [
+      "WS-05"
+    ],
+    "expected_evidence": "Ask the shop steward before using a tool you have not used before.",
+    "answerable": true,
+    "question_type": "unseen paraphrase of the person-to-consult relationship"
+  },
+  {
+    "id": "S6-Q4",
+    "question": "Can members start using a powered tool and complete the safety orientation afterward?",
+    "expected_source_ids": [
+      "WS-01"
+    ],
+    "expected_evidence": "Every member must complete the safety orientation before using any powered tool.",
+    "answerable": true,
+    "question_type": "temporal-order reversal; source quote is counterevidence to the proposed order"
+  },
+  {
+    "id": "S6-Q5",
+    "question": "Does the handbook say that every member can explain safe setup?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "actor swap; the source assigns explaining to shop stewards"
+  },
+  {
+    "id": "S6-Q6",
+    "question": "Do the shop stewards ask members before the members use an unfamiliar tool?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "actor swap; the source says the visitor asks the steward"
+  },
+  {
+    "id": "S6-Q7",
+    "question": "Who cancels a booking before its start so the time can be released?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "missing agent; the cancellation instruction does not name who performs it"
+  },
+  {
+    "id": "S6-Q8",
+    "question": "Are shop stewards the people who cancel a booking before it starts?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "actor swap plus missing source agent"
+  },
+  {
+    "id": "S6-Q9",
+    "question": "Is the ceramics room open on Saturday?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "unsupported day; schedule topic overlaps but Saturday is absent"
+  },
+  {
+    "id": "S6-Q10",
+    "question": "Does the front desk sell the clay itself?",
+    "expected_source_ids": [],
+    "answerable": false,
+    "question_type": "missing agent; source gives a sales location but does not name the seller"
+  }
+]

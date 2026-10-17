@@ -6,13 +6,13 @@ This project is inspired by **“Building a Document Q&A System,”** one of the
 
 Build a small system that finds source passages for questions, checks whether the requested relationship is present, and either quotes the evidence or abstains. The work proceeds in sessions so each stage can be understood before more machinery is added.
 
-**Current milestone:** Session 5 represents a few facts as subject–action–object relationships with optional time, day, condition, and location fields. The command-line program uses a small, visible set of question-pattern rules and quotes an exact source sentence. It does not compose a yes/no answer, use an LLM, use embeddings, or train a machine-learning model.
+**Current milestone:** Session 6 stress-tests relationship evidence with new paraphrases, actor swaps, reversed time proposals, and missing-agent questions. A few added visible rules check named actors before actions and abstain when the requested agent is absent. The command-line program still quotes source text; it does not generate a yes/no answer, use an LLM, use embeddings, or train a machine-learning model.
 
 ## Practice data and labels
 
 - `data/handbook.json` is an invented Northstar Workshop handbook used only as reference text. It is not real guidance.
 - `data/handbook_facts.json` contains hand-written relationship annotations tied to exact source quotes. These annotations are reference metadata, not model-training examples.
-- `data/evaluation_questions.json`, `data/session4_stress_questions.json`, and `data/session5_relationship_questions.json` contain hand-written evaluation questions and labels. Expected sources and quotes are evaluation references; the answer code does not read them.
+- `data/evaluation_questions.json`, `data/session4_stress_questions.json`, `data/session5_relationship_questions.json`, and `data/session6_relationship_questions.json` contain hand-written evaluation questions and labels. Expected sources and quotes are evaluation references; the answer code does not read them.
 - No model is trained. The tiny invented sets diagnose examples and do not establish general performance.
 
 ## Run it
@@ -51,7 +51,7 @@ python3 evaluate.py
 - **Session 4 — Stress-test evidence windows:** with the same clue groups, one-sentence windows quoted the expected evidence for 2/3 answerable questions, abstained on 1/3 answerable questions, and correctly abstained on 2/2 unsupported questions. Up-to-two-sentence windows quoted 3/3 answerable cases but produced a false positive on 1/2 unsupported cases by joining nearby clues without proving that the steward stored equipment.
 - **Session 5 — Represent relationships:** the new ten-question set has six answerable and four unsupported questions. Before changing the code, the existing one-sentence clue method produced exact expected quotes for 6/6 answerable questions and one false positive among four unsupported questions. The two-sentence version produced exact expected quotes for 6/6 and two false positives among four unsupported questions. The relationship-fact prototype produced exact expected quotes for 6/6 and abstained on all 4/4 unsupported questions. On the preserved Session 4 set, it returned source-correct evidence for 3/3 answerable questions (one quote was a labeled subspan) and abstained on 2/2 unsupported questions.
 
-Session 5 question wording was used while writing the new relationship rules, so those results are development-set observations, not a blind test of the new rules. All results come from small invented examples. The detailed guide explains this limitation and sets up a genuinely fresh Session 6 challenge before any further rule changes.
+Session 5 wording informed its rules; Session 6 questions were written before the latest parser changes and then guided those changes. Therefore the post-change Session 6 results are development observations, not a blind test. All results come from small invented examples. The detailed guide explains the baseline, the evaluation categories, and what the evidence can and cannot establish.
 
 ## What the relationship fields mean
 
@@ -61,4 +61,4 @@ This is still a narrow hand-built prototype. Its question parser recognizes a fe
 
 ## Next learning checkpoint
 
-Keep the Session 4 and Session 5 question files unchanged as regression checks. Before changing any parser or fact rule, write a new Session 6 challenge set containing unseen paraphrases, changed actor roles, time-order reversals, and missing agents. Measure exact evidence, wrong evidence, false negatives, false positives, and correct abstentions separately. Do not add free-form generation until evidence behavior has been evaluated more broadly.
+Keep the Session 4, Session 5, and Session 6 question files unchanged as regression checks. Session 7 should start with a new relationship-focused evaluation set before any rule changes, probing roles and time direction in fresh wording. Measure exact evidence, wrong evidence, false negatives, false positives, and correct abstentions separately. The current Session 6 results informed rule development and are not blind-test evidence. Do not add free-form generation until evidence behavior has been evaluated more broadly.

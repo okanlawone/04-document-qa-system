@@ -890,4 +890,107 @@ Make one change at a time and predict the result before running the evaluator:
 - [x] Keep the interactive path quote-based and avoid free-form generation.
 - [x] State clearly that Session 5 was used to develop the new rules and is not a blind evaluation.
 
-Project 4 remains active. For Session 6, write a genuinely fresh challenge set before changing the parser or fact records. Keep Sessions 4 and 5 unchanged as regression checks. Continue to avoid free-form model generation until the evidence checks have broader, less self-referential evaluation.
+Project 4 remains active. For Session 7, write a genuinely fresh challenge set before changing the parser or fact records. Keep Sessions 4–6 unchanged as regression checks. Continue to avoid free-form model generation until the evidence checks have broader, less self-referential evaluation.
+
+
+# Session 6: Who did what, and when?
+
+## 1. The new challenge
+
+A question can mention the right people and topic while asking for a relationship that the source never states. This session checks three slots together: who did something, what action happened, and when or under what condition it happened.
+
+The ten questions in `data/session6_relationship_questions.json` were written before changing the parser. Four questions can be adjudicated by a source quote; six ask for unsupported exact relationships. They include unfamiliar paraphrases, actor swaps, a reversed time proposal, and missing agents. In this evaluation file, `answerable: true` means the handbook contains evidence that can resolve the question. That evidence can contradict a proposal. For example, a sentence saying “before” is useful counterevidence to a question that proposes “after.” The program only returns a source quote; it does not produce a yes/no answer.
+
+All handbook text is invented reference material. The fact table is hand-written reference metadata tied to exact quotations. The questions and expected labels are evaluation data. None of these files trains a model. There is no learned model in this project.
+
+## 2. Measure the old behavior before editing
+
+The relationship matcher was run unchanged against the fresh questions. It returned exact expected evidence for 1/4 answerable questions and abstained on 3/4. Those three abstentions were false negatives: the expected quote existed, but the wording had no matching frame. On the six unsupported questions, the old matcher returned a quote for 4/6 (false positives) and correctly abstained on 2/6. It produced no wrong evidence on the answerable items because the failures there were abstentions.
+
+The errors reveal two different problems:
+
+- New wording such as “giving up a reserved time,” “show a first-time user,” and “check with” did not match the small set of known paraphrases.
+- Actor-swapped questions could match the same topic and action words while naming the wrong doer. The sale sentence named a place but not the person selling the clay; treating that location as an agent created another false positive.
+
+A metric is a count defined for a particular question set. Here, **false negative** means abstaining on an answerable item; **false positive** means quoting on an unsupported item; **wrong evidence** means quoting the wrong source or quote for an answerable item; and **correct abstention** means returning no quote for an unsupported item. Exact evidence and source-correct subspans are reported separately.
+
+## 3. Follow one fresh paraphrase through the code
+
+Question: “Who should a beginner check with before trying a tool they have never used?”
+
+1. `tokenize` lowercases the question and splits it into simple words.
+2. `relationship_frame` sees a small cue combination: `check`, a tool, and a before/first-use idea. It produces a frame asking for the `ask_steward_before_new_tool` action and the `shop steward` object.
+3. `fact_matches_frame` compares the requested action and object against each reference fact. The fact table contains a matching row whose evidence is the exact sentence “Ask the shop steward before using a tool you have not used before.”
+4. The answer function looks up that fact's labeled source document and returns its quotation. If no fact matches, it returns a short abstention reason.
+5. `evaluate.py` compares the output to the expected source and exact quote. It uses the expected labels for measurement; `main.py` does not read them to answer the question.
+
+The parser did not learn the phrase “check with” from examples. A person added a visible cue rule. This keeps the decision easy to inspect, but every supported paraphrase still depends on hand-written coverage.
+
+## 4. Why actor direction matters
+
+Compare these statements:
+
+- “Ask the shop steward before using a tool.” The implied visitor asks; the steward is the person asked.
+- “The shop steward asks the visitor before using a tool.” The participants have swapped roles.
+
+The old matcher could return the first sentence for both because it noticed “steward,” “ask,” and “tool.” Session 6 adds a small check for selected named actors that appear before the action. If the question names a shop steward as the doer, but the fact's subject is an implied visitor, the fact no longer matches.
+
+The same check catches a question that says every member explains safe setup: the source assigns that action to shop stewards. It also prevents a question from turning “sold at the front desk” into “the front desk sells.” In that fact, `location` is “front desk” and `subject` is `null`. A location tells where; a subject tells who or what performs the action.
+
+This is a narrow position-based rule for a few roles, not a general grammar parser. Different sentence order, pronouns, passive voice, or a new participant may confuse it. The table itself can also omit a true relationship or contain a mistaken annotation.
+
+## 5. Read the time reversal carefully
+
+One fresh question asks whether members can use a powered tool first and complete the orientation afterward. The source quote says every member must complete orientation **before** using a powered tool. That is an exact and relevant quote, but it contradicts the proposed order.
+
+The system does not generate “No.” It prints the quote and relationship fields. A person must compare the source's “before” with the question's “after.” The output should not be mistaken for a generated yes/no response or for proof that the matcher understood the question's polarity.
+
+## 6. Results after the targeted rule changes
+
+The hand-written fact table was left unchanged. The parser gained a few cues for giving up/calling off a booking, showing safe setup, and checking with someone before trying a tool. It also checks selected named actors before actions and recognizes questions that ask who performed an action.
+
+| Set | Exact expected evidence | Source-correct spans | Wrong evidence | False negatives | False positives | Correct abstentions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Session 6 development questions | 4/4 answerable | 4/4 | 0 | 0/4 | 0/6 unsupported | 6/6 |
+| Session 4 regression questions | 2/3 answerable | 3/3 | 0 | 0/3 | 0/2 unsupported | 2/2 |
+| Session 5 regression/development questions | 6/6 answerable | 6/6 | 0 | 0/6 | 0/4 unsupported | 4/4 |
+
+One Session 4 result is a source-correct sentence contained in the longer expected evidence window, so it is counted as a correct span but not an exact full quote. Session 5 wording informed earlier rule development. Session 6 wording guided the current changes. Therefore those results are development observations, not blind evaluation or broad reliability evidence. The examples are tiny and invented; one changed question could alter the counts sharply.
+
+Reproduce all three sets and the earlier retrieval comparisons with:
+
+```bash
+python3 evaluate.py
+```
+
+## 7. Experiments and questions
+
+Make predictions before changing code, and change one rule at a time:
+
+- Replace “check with” with a new phrase. Does the answer abstain because the wording is unknown or because no matching fact exists?
+- Swap the subject and object in a supported relation. Which field should reject the match?
+- Remove an agent from a source sentence. Should the system guess who acted, or abstain?
+- Reverse “before” and “after.” Is the returned quote support, contradiction, or irrelevant evidence?
+- Change “weekdays” to “Saturday.” Which fact field carries the day information?
+- Write an entirely new question set before changing another rule. Retain Sessions 4–6 unchanged as regression checks.
+
+Reflection:
+
+1. Why is a source-correct quotation not always an exact match to the requested relationship?
+2. Why does “at the front desk” fail to identify who sold the clay?
+3. Can an abstention mean “the words were unfamiliar,” “the fact table is incomplete,” or “the relation is absent”? How could you tell which happened?
+4. What actor wording can the before-the-verb rule miss?
+5. Why are expected quotes evaluation references and not training examples?
+6. What evidence would you want before adding a model that writes free-form answers?
+
+## 8. Session 6 completion checks
+
+- [x] Write a fresh relationship-focused set before editing the parser.
+- [x] Include paraphrases, actor swaps, time-order reversal, and missing-agent cases.
+- [x] Record unchanged-baseline errors before making targeted changes.
+- [x] Report exact evidence, source-correct spans, wrong evidence, false positives, false negatives, and correct abstentions separately.
+- [x] Keep Sessions 4 and 5 unchanged and run both after edits.
+- [x] Explain that the new set informed rule development and is not a blind test.
+- [x] Keep answers extractive; no model training or free-form generation was added.
+
+Session 6 is complete. Project 4 remains active. Session 7 should begin with a fresh evaluation set before any new parser or fact-table change, while preserving Sessions 4–6 as regression checks.

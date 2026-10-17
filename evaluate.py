@@ -17,6 +17,7 @@ from main import (
 QUESTIONS_PATH = Path(__file__).parent / "data" / "evaluation_questions.json"
 STRESS_QUESTIONS_PATH = Path(__file__).parent / "data" / "session4_stress_questions.json"
 RELATIONSHIP_QUESTIONS_PATH = Path(__file__).parent / "data" / "session5_relationship_questions.json"
+SESSION6_QUESTIONS_PATH = Path(__file__).parent / "data" / "session6_relationship_questions.json"
 TOP_K = 3
 
 
@@ -269,7 +270,7 @@ def summarize_answer_behavior(label, questions, answer_function):
     return totals
 
 
-def evaluate_session5_and_relationship_regression(questions, stress_questions, documents):
+def evaluate_relationship_sessions(questions, stress_questions, session6_questions, documents):
     """Compare the held-out set before and after the explicit-fact experiment."""
     facts = load_handbook_facts(Path(__file__).parent / "data" / "handbook_facts.json", documents)
     print(
@@ -289,8 +290,15 @@ def evaluate_session5_and_relationship_regression(questions, stress_questions, d
         )
 
     summarize_answer_behavior(
-        "Explicit relationship-fact check — Session 5 questions",
+        "Explicit relationship-fact check — Session 5 development set",
         questions,
+        lambda item: answer_question_with_relationships(
+            item["question"], documents, facts=facts
+        ),
+    )
+    summarize_answer_behavior(
+        "Explicit relationship-fact check — fresh Session 6 development set",
+        session6_questions,
         lambda item: answer_question_with_relationships(
             item["question"], documents, facts=facts
         ),
@@ -298,6 +306,13 @@ def evaluate_session5_and_relationship_regression(questions, stress_questions, d
     summarize_answer_behavior(
         "Explicit relationship-fact check — preserved Session 4 regression set",
         stress_questions,
+        lambda item: answer_question_with_relationships(
+            item["question"], documents, facts=facts
+        ),
+    )
+    summarize_answer_behavior(
+        "Explicit relationship-fact check — preserved Session 5 regression set",
+        questions,
         lambda item: answer_question_with_relationships(
             item["question"], documents, facts=facts
         ),
@@ -317,15 +332,16 @@ def main():
     stress_questions = load_questions(STRESS_QUESTIONS_PATH)
     evaluate_stress_set(stress_questions, documents)
     relationship_questions = load_questions(RELATIONSHIP_QUESTIONS_PATH)
-    evaluate_session5_and_relationship_regression(
-        relationship_questions, stress_questions, documents
+    session6_questions = load_questions(SESSION6_QUESTIONS_PATH)
+    evaluate_relationship_sessions(
+        relationship_questions, stress_questions, session6_questions, documents
     )
     print(
         "\nAll handbook text and evaluation labels are invented practice/reference data. "
         "No model is trained. These small hand-written results do not establish "
         "general reliability; both the concept groups and relationship records are "
-        "manually authored teaching rules/annotations. Session 4 and Session 5 questions "
-        "are evaluation data, not training data."
+        "manually authored teaching rules/annotations. Session 4, Session 5, and Session 6 "
+        "questions are evaluation data, not training data."
     )
 
 

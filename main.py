@@ -257,6 +257,23 @@ def load_handbook_facts(path, documents):
     return facts
 
 
+def explicit_subject_before(question, action_words):
+    """Recognize a few named actors that appear before the requested action."""
+    words = tokenize(question)
+    action_positions = [index for index, word in enumerate(words) if word in action_words]
+    if not action_positions:
+        return None
+
+    before_action = words[: min(action_positions)]
+    if "steward" in before_action or "stewards" in before_action:
+        return "shop stewards"
+    if "member" in before_action or "members" in before_action:
+        return "every member"
+    if "front" in before_action and "desk" in before_action:
+        return "front desk"
+    return None
+
+
 def relationship_frame(question):
     """Map a few visible question patterns to explicit relation constraints."""
     words = set(tokenize(question))
@@ -266,7 +283,7 @@ def relationship_frame(question):
     if "parking" in words:
         return {"action": "parking_included", "requested": "parking inclusion"}
 
-    if "store" in words or "stores" in words or "stored" in words:
+    if words & {"store", "stores", "stored"}:
         return {
             "action": "steward_stores_equipment",
             "requested": "shop steward stores protective equipment",
@@ -284,22 +301,42 @@ def relationship_frame(question):
                 "day_required": day,
             }
 
-    if "sell" in words or "sells" in words or "sold" in words:
+    if words & {"sell", "sells", "sold", "selling"}:
         if "clay" in words or "glaze" in words:
-            return {
+            frame = {
                 "action": "clay_sale",
                 "requested": "who sells clay or glaze",
-                "ask_for_subject": bool(words & {"who", "seller"}),
+                "ask_for_subject": bool(words & {"who", "seller", "person", "staff"}),
                 "location_required": "front desk" if "desk" in words else None,
             }
+            subject = explicit_subject_before(question, {"sell", "sells", "sold", "selling"})
+            if subject:
+                frame["subject_required"] = subject
+            return frame
 
-    if words & {"cancel", "canceled", "cancelled", "cancellation"}:
-        return {
+    cancellation_words = {
+        "cancel", "canceled", "cancelled", "cancellation", "release", "released",
+        "releasing", "give", "giving", "drop", "dropped",
+    }
+    question_words = tokenize(question)
+    calls_off = any(
+        question_words[index : index + 2] == ["call", "off"]
+        for index in range(len(question_words) - 1)
+    )
+    if words & cancellation_words or calls_off:
+        frame = {
             "action": "cancel_booking_before_start",
             "requested": "who cancels a booking and when",
-            "subject_required": "front desk" if "desk" in words else None,
             "object_required": "booking",
+            "ask_for_subject": bool(words & {"who", "which", "person", "responsible", "staff"}),
         }
+        subject = explicit_subject_before(
+            question,
+            {"cancel", "cancels", "canceled", "cancelled", "release", "released", "releasing", "give", "giving", "drop", "dropped", "call"},
+        )
+        if subject:
+            frame["subject_required"] = subject
+        return frame
 
     if "orientation" in words and ("tool" in words or "powered" in words):
         return {
@@ -320,20 +357,31 @@ def relationship_frame(question):
             "object_required": "90 minutes",
         }
 
-    if words & {"ask", "speak", "consult"} and words & {"tool", "unfamiliar", "before"}:
-        return {
+    if words & {"ask", "speak", "consult", "check"} and words & {"tool", "unfamiliar", "before", "new", "trying"}:
+        frame = {
             "action": "ask_steward_before_new_tool",
             "requested": "who to ask before using an unfamiliar tool",
             "object_required": "shop steward",
         }
+        subject = explicit_subject_before(question, {"ask", "asks", "speak", "speaks", "consult", "consults", "check", "checks"})
+        if subject:
+            frame["subject_required"] = subject
+        return frame
 
-    if words & {"explain", "guide", "prepare", "setup"} and words & {"who", "which", "person", "steward", "safely", "safe"}:
-        return {
+    if words & {"explain", "guide", "prepare", "setup", "show", "demonstrate", "configure", "walk"} and words & {"who", "which", "person", "steward", "safely", "safe", "member", "members"}:
+        frame = {
             "action": "explain_safe_setup",
             "requested": "who explains safe setup",
             "object_required": "safe setup",
             "ask_for_subject": bool(words & {"who", "which", "person"}),
         }
+        subject = explicit_subject_before(
+            question,
+            {"explain", "explains", "explaining", "guide", "guides", "prepare", "prepares", "show", "shows", "demonstrate", "demonstrates", "configure", "configures", "walk", "walks"},
+        )
+        if subject:
+            frame["subject_required"] = subject
+        return frame
 
     return None
 
