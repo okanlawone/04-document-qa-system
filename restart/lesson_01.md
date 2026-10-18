@@ -174,11 +174,7 @@ Use only invented sentences in these experiments. Adding a made-up fact demonstr
 
 ## 8. Your learning checkpoint
 
-Before moving on, explain in your own words:
-
-1. Why does the phone-billing sentence fail to prove phone renewal?
-2. What must match for the program to return a quote?
-3. Does “the document does not state this” mean “phone renewal is definitely impossible”?
+Using only the two facts in the code, what should the program return for “Can I renew by phone?” Explain why, and say whether “not stated” proves phone renewal is impossible.
 
 You can answer casually. I’ll respond to your explanation before we add the next piece.
 
