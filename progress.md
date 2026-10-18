@@ -1,5 +1,14 @@
 # Project Progress
 
+## First-principles restart
+
+- [x] Preserve the published Sessions 1–6 and their evaluation history.
+- [x] Add a beginner restart lesson and a small runnable evidence-lookup prototype.
+- [ ] Discuss the Lesson 1 checkpoint with Tomi before advancing.
+- [ ] Continue building and publishing one explained project layer at a time.
+
+The prior sessions are completed repository milestones, not proof that Tomi learned their contents. The next learning step is the restart checkpoint in [`restart/lesson_01.md`](restart/lesson_01.md); Session 7 is deferred until the foundations have been rebuilt.
+
 ## Overall goal
 
 Build and understand a document question-answering system that retrieves relevant source passages, produces evidence-grounded responses, and exposes the cases where it is unsure or wrong.
@@ -53,7 +62,7 @@ Build and understand a document question-answering system that retrieves relevan
 - [x] Document that Session 5 was used to shape the new rules and is not a blind evaluation.
 - [x] Keep answers extractive and add no free-form generation.
 
-### Next learning checkpoint — Stress-test relationships
+### Historical planned checkpoint — Stress-test relationships
 
 - [ ] Keep the Session 4 and Session 5 question files unchanged as regression checks.
 - [ ] Write a fresh Session 6 relationship set before changing the parser or fact annotations.

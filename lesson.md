@@ -1,5 +1,7 @@
 # Project 4 — Build a Document Q&A System
 
+> **Fresh start:** begin with [`restart/lesson_01.md`](restart/lesson_01.md). The earlier sessions remain below as project history; start here if you want the foundations retaught from zero.
+
 ## Session 1: How can a program find evidence in documents?
 
 **Status:** first milestone of a multi-session project

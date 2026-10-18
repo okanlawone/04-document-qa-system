@@ -6,7 +6,7 @@ This project is inspired by **“Building a Document Q&A System,”** one of the
 
 Build a small system that finds source passages for questions, checks whether the requested relationship is present, and either quotes the evidence or abstains. The work proceeds in sessions so each stage can be understood before more machinery is added.
 
-**Current milestone:** Session 6 stress-tests relationship evidence with new paraphrases, actor swaps, reversed time proposals, and missing-agent questions. A few added visible rules check named actors before actions and abstain when the requested agent is absent. The command-line program still quotes source text; it does not generate a yes/no answer, use an LLM, use embeddings, or train a machine-learning model.
+**Current learning milestone:** Tomi is restarting Project 4 from first principles because the earlier lessons did not stick. Begin with [`restart/lesson_01.md`](restart/lesson_01.md) and its runnable [`restart/lesson_01_evidence_lookup.py`](restart/lesson_01_evidence_lookup.py). Sessions 1–6 remain preserved as project history; they are not evidence that the learner understands the material. The full system still quotes source evidence or abstains; it does not generate a yes/no answer, use an LLM, use embeddings, or train a machine-learning model.
 
 ## Practice data and labels
 
@@ -42,6 +42,16 @@ Reproduce all retrieval, topic-clue, window-size, and relationship evaluations w
 ```bash
 python3 evaluate.py
 ```
+
+## Fresh-start path
+
+Start with the small evidence-lookup exercise before using the older session guides:
+
+```bash
+python3 restart/lesson_01_evidence_lookup.py
+```
+
+The lesson explains every new term and code section, works through the phone-renewal example, and ends with a learner checkpoint. Continue only after the checkpoint is discussed.
 
 ## Learning path
 
