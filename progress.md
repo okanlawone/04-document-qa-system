@@ -4,10 +4,12 @@
 
 - [x] Preserve the published Sessions 1–6 and their evaluation history.
 - [x] Add a beginner restart lesson and a small runnable evidence-lookup prototype.
-- [ ] Discuss the Lesson 1 checkpoint with Tomi before advancing.
+- [x] Discuss the Lesson 1 checkpoint with Tomi before advancing.
+- [x] Publish the learner-authored action/method lookup attempt and a beginner walkthrough of `return` versus `print` (October 20, 2026).
+- [ ] Discuss the return/print learner check before advancing to another concept.
 - [ ] Continue building and publishing one explained project layer at a time.
 
-The prior sessions are completed repository milestones, not proof that Tomi learned their contents. The next learning step is the restart checkpoint in [`restart/lesson_01.md`](restart/lesson_01.md); Session 7 is deferred until the foundations have been rebuilt.
+The prior sessions are completed repository milestones, not proof that Tomi learned their contents. On October 20, Tomi supplied a first Python lookup implementation; the published [learner attempt](restart/learner_attempt_01.py) preserves it, and a [return-versus-print guide](restart/lesson_01_return_and_print.md) explains its current flow. The learner check remains open, so do not advance to another concept yet. Session 7 is deferred until the foundations have been rebuilt.
 
 ## Overall goal
 

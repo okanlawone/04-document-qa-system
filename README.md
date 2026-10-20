@@ -72,3 +72,8 @@ This is still a narrow hand-built prototype. Its question parser recognizes a fe
 ## Next learning checkpoint
 
 Keep the Session 4, Session 5, and Session 6 question files unchanged as regression checks. Session 7 should start with a new relationship-focused evaluation set before any rule changes, probing roles and time direction in fresh wording. Measure exact evidence, wrong evidence, false negatives, false positives, and correct abstentions separately. The current Session 6 results informed rule development and are not blind-test evidence. Do not add free-form generation until evidence behavior has been evaluated more broadly.
+
+
+## Latest daily build — October 20, 2026
+
+The fresh-start track now includes the learner-authored [`restart/learner_attempt_01.py`](restart/learner_attempt_01.py) and a step-by-step [`return` versus `print` walkthrough](restart/lesson_01_return_and_print.md). The practice version is labeled and intentionally limited; publication records project work, not proof of mastery.
