@@ -77,3 +77,7 @@ Keep the Session 4, Session 5, and Session 6 question files unchanged as regress
 ## Latest daily build — October 20, 2026
 
 The fresh-start track now includes the learner-authored [`restart/learner_attempt_01.py`](restart/learner_attempt_01.py) and a step-by-step [`return` versus `print` walkthrough](restart/lesson_01_return_and_print.md). The practice version is labeled and intentionally limited; publication records project work, not proof of mastery.
+
+## Latest daily build — October 21, 2026
+
+A runnable [return-versus-print trace](restart/return_print_trace.py) and its [line-by-line walkthrough](restart/lesson_02_return_print_trace.md) show what the calling code receives when a function prints instead of returning a value. The learner check remains open; do not advance to another concept based on publication.
