@@ -45,13 +45,13 @@ python3 evaluate.py
 
 ## Fresh-start path
 
-Start with the small evidence-lookup exercise before using the older session guides:
+Use the [fresh-start guide](restart/README.md) and its [progress tracker](restart/progress.md). Start with the small evidence-lookup exercise before using the older session guides:
 
 ```bash
 python3 restart/lesson_01_evidence_lookup.py
 ```
 
-The lesson explains every new term and code section, works through the phone-renewal example, and ends with a learner checkpoint. Continue only after the checkpoint is discussed.
+The lessons explain new terms and code step by step. Each ends with one learner checkpoint; continue only after the current checkpoint is discussed.
 
 ## Learning path
 
@@ -81,3 +81,7 @@ The fresh-start track now includes the learner-authored [`restart/learner_attemp
 ## Latest daily build — October 21, 2026
 
 A runnable [return-versus-print trace](restart/return_print_trace.py) and its [line-by-line walkthrough](restart/lesson_02_return_print_trace.md) show what the calling code receives when a function prints instead of returning a value. The learner check remains open; do not advance to another concept based on publication.
+
+## Latest daily build — October 22, 2026
+
+The fresh-start track now includes a small [store-and-reuse example](restart/store_return_value.py) and a [line-by-line lesson](restart/lesson_03_store_return_value.md). It shows one function call returning a value that is stored and displayed twice. The learner check remains open; this publication records project work, not proof of mastery.
